@@ -1,0 +1,136 @@
+@page
+@model YJTunnel.Server.Pages.IndexModel
+@{
+    ViewData["Title"] = "总览";
+    var data = Model.Data;
+}
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="ic green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <div><div class="num" id="stat-online">@data.OnlineCount</div><div class="lbl">在线客户</div></div>
+    </div>
+    <div class="stat-card">
+        <div class="ic blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><div class="num" id="stat-customers">@data.CustomerCount</div><div class="lbl">登记客户</div></div>
+    </div>
+    <a class="stat-card" href="/Pending" style="text-decoration:none;color:inherit">
+        <div class="ic amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <div><div class="num" id="stat-pending">@data.PendingCount</div><div class="lbl">待审核 @(data.PendingCount > 0 ? "· 点击处理" : "")</div></div>
+    </a>
+    <div class="stat-card">
+        <div class="ic violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></div>
+        <div><div class="num" id="stat-ports">@data.PortUsed</div><div class="lbl">已分配端口</div></div>
+    </div>
+</div>
+
+<div id="alerts">
+    @if (data.BindFailures.Count > 0)
+    {
+        <div class="alert err">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <div>
+                <b>绑定失败告警</b>
+                @foreach (var f in data.BindFailures.Take(10))
+                {
+                    <div>「@f.Name」@f.Msg</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h3>在线会话</h3>
+        <span class="sub">每 5 秒自动刷新</span>
+        <span class="spacer"></span>
+        <span class="sub" id="refresh-meta">—</span>
+        <button class="btn sm" id="pause-btn" onclick="togglePause()">暂停</button>
+    </div>
+    <div class="table-wrap">
+        <table class="list" id="sessions-table">
+            <thead>
+                <tr>
+                    <th>客户</th><th>ClientId</th><th>来源 IP</th><th>机器名</th><th>版本</th>
+                    <th>登录时间</th><th>最近心跳</th><th style="text-align:right">已转发连接</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in data.Sessions)
+                {
+                    <tr>
+                        <td class="td-main">@s.Name</td>
+                        <td class="mono">@s.ClientId</td>
+                        <td class="mono">@s.RemoteIp</td>
+                        <td>@s.MachineName</td>
+                        <td><span class="chip">@s.AppVersion</span></td>
+                        <td class="mono">@s.LoginAt</td>
+                        <td class="mono">@s.LastAlive</td>
+                        <td style="text-align:right"><span class="chip">@s.Connections</span></td>
+                    </tr>
+                }
+                @if (data.Sessions.Count == 0)
+                {
+                    <tr><td colspan="8">
+                        <div class="empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                            <p>暂无在线客户 · 客户端开启隧道后将出现在这里</p>
+                        </div>
+                    </td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let paused = false;
+        function togglePause() {
+            paused = !paused;
+            document.getElementById('pause-btn').textContent = paused ? '恢复' : '暂停';
+            if (!paused) refresh();
+        }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && !paused) refresh(); });
+        async function refresh() {
+            try {
+                const resp = await fetch('?handler=Stats', { headers: { 'X-Requested-With': 'fetch' } });
+                if (!resp.ok || document.hidden) return;
+                const d = await resp.json();
+                document.getElementById('stat-online').textContent = d.onlineCount;
+                document.getElementById('stat-customers').textContent = d.customerCount;
+                document.getElementById('stat-pending').textContent = d.pendingCount;
+                document.getElementById('stat-ports').textContent = d.portUsed;
+                document.getElementById('refresh-meta').textContent =
+                    '最后刷新 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+
+                // 绑定失败告警（整体重绘）
+                const alerts = document.getElementById('alerts');
+                alerts.innerHTML = (d.bindFailures && d.bindFailures.length) ? `
+                    <div class="alert err">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                        <div><b>绑定失败告警</b>${d.bindFailures.slice(0, 10).map(f => `<div>「${h(f.name)}」${h(f.msg)}</div>`).join('')}</div>
+                    </div>` : '';
+
+                // 在线会话表
+                const rows = (d.sessions || []).map(s => `
+                    <tr>
+                        <td class="td-main">${h(s.name)}</td>
+                        <td class="mono">${h(s.clientId)}</td>
+                        <td class="mono">${h(s.remoteIp)}</td>
+                        <td>${h(s.machineName)}</td>
+                        <td><span class="chip">${h(s.appVersion)}</span></td>
+                        <td class="mono">${h(s.loginAt)}</td>
+                        <td class="mono">${h(s.lastAlive)}</td>
+                        <td style="text-align:right"><span class="chip">${s.connections}</span></td>
+                    </tr>`).join('');
+                document.querySelector('#sessions-table tbody').innerHTML = rows ||
+                    `<tr><td colspan="8"><div class="empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        <p>暂无在线客户 · 客户端开启隧道后将出现在这里</p>
+                    </div></td></tr>`;
+            } catch (e) { /* 轮询失败忽略，下轮重试 */ }
+        }
+        setInterval(refresh, 5000);
+    </script>
+}

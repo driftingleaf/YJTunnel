@@ -1,0 +1,258 @@
+@using YJTunnel.Server
+@inject AdminService Admin
+@{
+    var auth = User?.Identity?.IsAuthenticated == true;
+    var title = ViewData["Title"] as string ?? "管理控制台";
+    var pendingCount = 0;
+    var onlineCount = 0;
+    if (auth)
+    {
+        pendingCount = Admin.GetPending().Count(p => !p.Rejected);
+        onlineCount = Admin.GetOverview().OnlineCount;
+    }
+}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>@title</title>
+    <style>
+        :root {
+            --bg: #eef2f7; --card: #fff; --line: #e6eaf2; --text: #0f172a; --muted: #64748b;
+            --primary: #3b82f6; --primary-d: #2563eb; --green: #10b981; --amber: #f59e0b;
+            --red: #ef4444; --violet: #8b5cf6; --sidebar: #0f172a; --radius: 14px;
+            --shadow: 0 1px 2px rgba(15,23,42,.05), 0 2px 8px rgba(15,23,42,.06);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { height: 100%; }
+        body { font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100%; }
+        a { color: var(--primary); text-decoration: none; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        /* ---------- 侧边栏 ---------- */
+        .sidebar { position: fixed; inset: 0 auto 0 0; width: 232px; background: var(--sidebar); color: #94a3b8; display: flex; flex-direction: column; z-index: 10; }
+        .brand { display: flex; align-items: center; gap: 11px; padding: 20px 18px 18px; color: #fff; }
+        .brand .logo { width: 38px; height: 38px; border-radius: 11px; flex: none; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(59,130,246,.4); }
+        .brand b { font-size: 16px; letter-spacing: .5px; display: block; }
+        .brand span { font-size: 11px; color: #64748b; display: block; margin-top: 2px; }
+        .nav { padding: 6px 12px; flex: 1; }
+        .nav-item { display: flex; align-items: center; gap: 11px; padding: 10px 13px; margin-bottom: 4px; border-radius: 10px; color: #94a3b8; font-size: 14px; transition: all .15s; }
+        .nav-item svg { width: 18px; height: 18px; flex: none; }
+        .nav-item:hover { background: #1e293b; color: #e2e8f0; }
+        .nav-item.active { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,.35); }
+        .nav-badge { margin-left: auto; background: var(--red); color: #fff; font-size: 11px; font-weight: 600; min-width: 18px; height: 18px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+        .side-foot { padding: 14px 18px; font-size: 11px; color: #475569; border-top: 1px solid #1e293b; }
+
+        /* ---------- 主区 ---------- */
+        .main { margin-left: 232px; min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { position: sticky; top: 0; z-index: 9; height: 60px; background: rgba(255,255,255,.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; padding: 0 26px; }
+        .topbar h1 { font-size: 17px; font-weight: 600; }
+        .topbar .spacer { flex: 1; }
+        .online-chip { display: inline-flex; align-items: center; gap: 7px; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; border-radius: 999px; padding: 4px 12px; font-size: 12.5px; font-weight: 600; }
+        .online-chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,.18); }
+        .user-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+        .user-chip .ava { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #64748b, #334155); color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+        .content { flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 24px 26px 40px; }
+        .page-foot { text-align: center; color: #94a3b8; font-size: 12px; padding: 18px 0 26px; }
+
+        /* ---------- 卡片 / 统计 ---------- */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 16px; margin-bottom: 18px; }
+        .stat-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; display: flex; gap: 14px; align-items: center; transition: transform .15s; }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .ic { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex: none; }
+        .stat-card .ic svg { width: 22px; height: 22px; }
+        .stat-card .num { font-size: 26px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+        .stat-card .lbl { color: var(--muted); font-size: 13px; margin-top: 3px; }
+        .ic.green { background: #d1fae5; color: #059669; } .ic.blue { background: #dbeafe; color: #2563eb; }
+        .ic.amber { background: #fef3c7; color: #d97706; } .ic.violet { background: #ede9fe; color: #7c3aed; }
+
+        .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden; }
+        .card-head { display: flex; align-items: center; gap: 12px; padding: 15px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+        .card-head h3 { font-size: 15px; font-weight: 600; }
+        .card-head .sub { color: var(--muted); font-size: 12.5px; }
+        .card-head .spacer { flex: 1; }
+        .card-body { padding: 18px 20px; }
+
+        /* ---------- 表格 ---------- */
+        .table-wrap { overflow-x: auto; }
+        table.list { width: 100%; border-collapse: collapse; }
+        table.list th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; background: #f8fafc; padding: 10px 16px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+        table.list th.sortable { cursor: pointer; user-select: none; }
+        table.list th.sortable:hover { color: var(--primary); }
+        table.list td { padding: 11px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        table.list tbody tr:last-child td { border-bottom: none; }
+        table.list tbody tr { transition: background .1s; }
+        table.list tbody tr:hover { background: #f8fafc; }
+        table.list tbody tr.dim { opacity: .55; }
+        .mono { font-family: Consolas, "JetBrains Mono", monospace; font-size: 12.5px; color: #475569; }
+        .td-main { font-weight: 600; }
+
+        /* ---------- 徽标 / 头像 / chips ---------- */
+        .pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 11px 3px 8px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+        .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .pill.ok { background: #ecfdf5; color: #059669; } .pill.off { background: #f1f5f9; color: #64748b; }
+        .pill.warn { background: #fffbeb; color: #b45309; } .pill.err { background: #fef2f2; color: #b91c1c; }
+        .pill.info { background: #eff6ff; color: #2563eb; }
+        .chip { display: inline-block; background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; border-radius: 6px; padding: 1px 7px; font-size: 12px; margin: 1px 2px 1px 0; white-space: nowrap; }
+        .avatar { width: 34px; height: 34px; border-radius: 10px; color: #fff; font-weight: 700; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+
+        /* ---------- 按钮 ---------- */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 15px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all .15s; text-decoration: none; }
+        .btn:hover { border-color: #cbd5e1; background: #f8fafc; }
+        .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .btn.primary:hover { background: var(--primary-d); border-color: var(--primary-d); }
+        .btn.danger { color: var(--red); border-color: #fecaca; background: #fff; }
+        .btn.danger:hover { background: #fef2f2; }
+        .btn.sm { height: 27px; padding: 0 10px; font-size: 12px; border-radius: 6px; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .ibtn { width: 28px; height: 28px; border-radius: 7px; border: none; background: transparent; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; transition: all .12s; }
+        .ibtn:hover { background: #e2e8f0; color: var(--primary); }
+        .ibtn svg { width: 14px; height: 14px; }
+        .actions { white-space: nowrap; }
+        .actions .btn, .actions form { margin-right: 5px; }
+
+        /* ---------- 告警 / 空态 ---------- */
+        .alert { display: flex; gap: 11px; align-items: flex-start; background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--amber); border-radius: 12px; padding: 13px 16px; margin-bottom: 16px; box-shadow: var(--shadow); color: #92400e; font-size: 13.5px; }
+        .alert.err { border-left-color: var(--red); color: #991b1b; }
+        .alert.ok { border-left-color: var(--green); color: #065f46; }
+        .alert svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+        .alert b { font-weight: 700; }
+        .empty { text-align: center; padding: 44px 20px; color: var(--muted); }
+        .empty svg { width: 40px; height: 40px; color: #cbd5e1; margin-bottom: 10px; }
+        .empty p { font-size: 13.5px; }
+
+        /* ---------- 表单 ---------- */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 18px; }
+        .field label { display: block; font-size: 12.5px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+        .field input[type=text], .field input[type=password] { width: 100%; height: 37px; border: 1px solid #d7dee8; border-radius: 8px; padding: 0 11px; font-size: 13.5px; color: var(--text); background: #fff; transition: all .15s; }
+        .field input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.14); }
+        .field input[readonly] { background: #f8fafc; color: var(--muted); }
+        .check { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; }
+        .check input { width: 16px; height: 16px; accent-color: var(--primary); }
+        .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
+        .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .toolbar input[type=text] { height: 34px; border: 1px solid #d7dee8; border-radius: 8px; padding: 0 11px; font-size: 13px; width: 240px; }
+        .toolbar input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.14); }
+        .toolbar label { color: var(--muted); font-size: 13px; }
+        form.inline { display: inline; }
+
+        /* ---------- 登录页 ---------- */
+        body.anon { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(1100px 500px at 15% -10%, rgba(59,130,246,.25), transparent 60%), radial-gradient(900px 500px at 110% 110%, rgba(139,92,246,.22), transparent 55%), #0f172a; }
+        .login-box { width: 392px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(2,6,23,.5); padding: 34px 34px 26px; }
+        .login-box .logo-lg { width: 54px; height: 54px; border-radius: 15px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; box-shadow: 0 8px 22px rgba(59,130,246,.4); }
+        .login-box h2 { font-size: 19px; text-align: center; margin-bottom: 4px; }
+        .login-box .sub { text-align: center; color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+        .login-box .field { margin-bottom: 14px; }
+        .login-box .btn { width: 100%; height: 40px; font-size: 14.5px; margin-top: 6px; }
+        .login-box .foot { text-align: center; color: #94a3b8; font-size: 11.5px; margin-top: 18px; }
+
+        /* ---------- toast ---------- */
+        .toast { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(16px); background: #0f172a; color: #fff; border-radius: 9px; padding: 9px 18px; font-size: 13px; opacity: 0; pointer-events: none; transition: all .2s; z-index: 99; box-shadow: 0 10px 28px rgba(2,6,23,.4); }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body class="@(auth ? "" : "anon")">
+@if (!auth)
+{
+    @RenderBody()
+}
+else
+{
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="21" height="21"><path d="M4 6h16M4 12h10a4 4 0 0 1 0 8h-3"/><path d="m13 9 3 3-3 3"/></svg>
+            </div>
+            <div><b>YJTunnel</b><span>自研内网穿透</span></div>
+        </div>
+        <nav class="nav">
+            <a class="nav-item" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>总览</a>
+            <a class="nav-item" href="/Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>客户管理</a>
+            <a class="nav-item" href="/Ports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>端口分配</a>
+            <a class="nav-item" href="/Pending">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span>待审核</span>
+                @if (pendingCount > 0)
+                {
+                    <span class="nav-badge">@pendingCount</span>
+                }
+            </a>
+            <a class="nav-item" href="/Logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>操作日志</a>
+        </nav>
+        <div class="side-foot">YJTunnel 内网穿透<br/>控制+数据复用端口 5003</div>
+    </aside>
+    <div class="main">
+        <header class="topbar">
+            <h1>@title</h1>
+            <span class="spacer"></span>
+            <span class="online-chip" title="当前在线客户端数">在线 @onlineCount</span>
+            <span class="user-chip"><span class="ava">@(User.Identity?.Name?[0].ToString().ToUpper() ?? "A")</span>@User.Identity?.Name</span>
+            <form class="inline" method="post" asp-page="/Login" asp-page-handler="Logout">
+                <button type="submit" class="btn sm">退出</button>
+            </form>
+        </header>
+        <main class="content">
+            @RenderBody()
+        </main>
+        <div class="page-foot">YJTunnel 服务端 · 仅限运维网段访问</div>
+    </div>
+}
+<div class="toast" id="toast"></div>
+<script>
+    // ---------- 公共工具 ----------
+    window.h = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let _toastTimer;
+    function toast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+    function copyText(text) {
+        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
+            .then(() => toast('已复制：' + text)).catch(() => toast('复制失败'));
+    }
+    // 侧边栏高亮当前页
+    document.querySelectorAll('.nav-item').forEach(a => {
+        if (a.getAttribute('href') === location.pathname) a.classList.add('active');
+    });
+    // 通用：客户端表格过滤（input[data-filter="#表id"]）
+    document.querySelectorAll('input[data-filter]').forEach(inp => {
+        inp.addEventListener('input', function () {
+            const q = this.value.trim().toLowerCase();
+            document.querySelectorAll(this.dataset.filter + ' tbody tr').forEach(tr => {
+                tr.style.display = !q || tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    });
+    // 通用：点击表头排序（th.sortable data-idx=列序号 data-type=num）
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.title = '点击排序';
+        th.addEventListener('click', () => {
+            const table = th.closest('table'), idx = +th.dataset.idx, num = th.dataset.type === 'num';
+            const tbody = table.querySelector('tbody');
+            const asc = th.dataset.asc !== '1';
+            table.querySelectorAll('th.sortable').forEach(o => { if (o !== th) delete o.dataset.asc; });
+            th.dataset.asc = asc ? '1' : '0';
+            [...tbody.querySelectorAll('tr')]
+                .sort((a, b) => {
+                    const x = a.children[idx].textContent.trim(), y = b.children[idx].textContent.trim();
+                    const r = num ? (parseFloat(x) || 0) - (parseFloat(y) || 0) : x.localeCompare(y, 'zh');
+                    return asc ? r : -r;
+                }).forEach(tr => tbody.appendChild(tr));
+        });
+    });
+    // 头像配色（按字符串稳定取色）
+    function avatarColor(s) {
+        const palettes = ['linear-gradient(135deg,#3b82f6,#2563eb)','linear-gradient(135deg,#10b981,#059669)','linear-gradient(135deg,#f59e0b,#d97706)','linear-gradient(135deg,#8b5cf6,#7c3aed)','linear-gradient(135deg,#ec4899,#db2777)','linear-gradient(135deg,#06b6d4,#0891b2)'];
+        let n = 0; for (const c of String(s || '')) n = (n * 31 + c.charCodeAt(0)) | 0;
+        return palettes[Math.abs(n) % palettes.length];
+    }
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

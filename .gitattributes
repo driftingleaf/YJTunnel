@@ -1,0 +1,9 @@
+* text=auto
+
+# Windows 批处理必须 CRLF：cmd 对 LF-only 批处理存在 512 字节边界解析 bug（行腰斩）
+*.bat text eol=crlf
+# PowerShell 5.1 依赖 BOM/行尾稳定性
+*.ps1 text eol=crlf
+# Shell 脚本必须 LF
+*.sh text eol=lf
+*.service text eol=lf

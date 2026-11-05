@@ -1,0 +1,77 @@
+@page
+@model YJTunnel.Server.Pages.PendingModel
+@{
+    ViewData["Title"] = "待审核";
+}
+@if (Model.Message != null)
+{
+    <div class="alert @(Model.IsError ? "err" : "ok")">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span>@Model.Message</span>
+    </div>
+}
+
+<div class="card">
+    <div class="card-head">
+        <h3>待审核申请</h3>
+        <span class="sub">AutoRegister 关闭后未知 clientId 的登录申请；通过后自动建档并分配端口，客户端约 5 分钟内自动上线</span>
+    </div>
+    <div class="table-wrap">
+        <table class="list">
+            <thead>
+                <tr><th>申请人</th><th>ClientId</th><th>公司名称</th><th>机器名 / 版本</th><th>首次申请</th><th>最近尝试</th><th>申请映射</th><th style="text-align:right">操作</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Pending)
+                {
+                    <tr class="@(p.Rejected ? "dim" : "")">
+                        <td>
+                            <span style="display:inline-flex;align-items:center;gap:10px">
+                                <span class="avatar" style="background:@YJTunnel.Server.Pages.CustomersModel.AvatarColor(p.ClientId)">?</span>
+                                <span class="td-main">@(string.IsNullOrWhiteSpace(p.CompanyName) ? "未知客户端" : p.CompanyName)</span>
+                            </span>
+                        </td>
+                        <td class="mono">@p.ClientId[..Math.Min(10, p.ClientId.Length)]…<button class="ibtn" title="复制完整 ClientId" onclick="copyText('@p.ClientId')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button></td>
+                        <td>@(string.IsNullOrWhiteSpace(p.CompanyName) ? "—" : p.CompanyName) <span class="chip">@p.MachineName @p.AppVersion</span></td>
+                        <td class="mono">@p.FirstSeenAt</td>
+                        <td class="mono">@p.LastTryAt</td>
+                        <td>
+                            @foreach (var m in p.Mappings)
+                            {
+                                <span class="chip mono">@m.Key → @(m.RemotePort > 0 ? m.RemotePort.ToString() : "自动")</span>
+                            }
+                        </td>
+                        <td style="text-align:right">
+                            @if (!p.Rejected)
+                            {
+                                <form class="inline" method="post" asp-page-handler="Approve"
+                                      onsubmit="return confirm('通过「@p.ClientId」的申请？\n\n将自动建档并分配端口，客户端约 5 分钟内自动登录成功。')">
+                                    <input type="hidden" name="clientId" value="@p.ClientId" />
+                                    <button class="btn sm primary">通过</button>
+                                </form>
+                                <form class="inline" method="post" asp-page-handler="Reject"
+                                      onsubmit="return confirm('拒绝「@p.ClientId」？该客户端后续登录将被直接拒绝。')">
+                                    <input type="hidden" name="clientId" value="@p.ClientId" />
+                                    <button class="btn sm danger">拒绝</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="pill err">已拒绝</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (Model.Pending.Count == 0)
+                {
+                    <tr><td colspan="7">
+                        <div class="empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                            <p>暂无待审核申请</p>
+                        </div>
+                    </td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

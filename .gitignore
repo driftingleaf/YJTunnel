@@ -1,0 +1,23 @@
+# Build artifacts
+bin/
+obj/
+publish/
+dist/
+artifacts/
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.slnx
+**/Properties/PublishProfiles/
+
+# Runtime data
+logs/
+*.log
+/tunnelserver.json
+customers.json
+customers.json.bak
+customers.json.tmp
+pending.json

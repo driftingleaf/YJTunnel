@@ -1,0 +1,20 @@
+[Unit]
+Description=XinDa YJTunnel Server (内网穿透服务端)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=yjtunnel
+WorkingDirectory=/opt/yj-tunnel
+ExecStart=/opt/yj-tunnel/YJTunnelServer
+Restart=always
+RestartSec=5
+# 硬化：私有临时目录、限制权限
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/yj-tunnel
+
+[Install]
+WantedBy=multi-user.target

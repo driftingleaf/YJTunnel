@@ -1,0 +1,31 @@
+@page
+@model YJTunnel.Server.Pages.LoginModel
+@{
+    ViewData["Title"] = "登录";
+}
+<div class="login-box">
+    <div class="logo-lg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M4 6h16M4 12h10a4 4 0 0 1 0 8h-3"/><path d="m13 9 3 3-3 3"/></svg>
+    </div>
+    <h2>YJTunnel 内网穿透</h2>
+    <div class="sub">管理控制台 · YJTunnelServer</div>
+    @if (Model.Error != null)
+    {
+        <div class="alert err" style="margin-bottom:14px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            <span>@Model.Error</span>
+        </div>
+    }
+    <form method="post">
+        <div class="field">
+            <label>账号</label>
+            <input type="text" name="username" autocomplete="username" autofocus placeholder="请输入管理账号" />
+        </div>
+        <div class="field">
+            <label>密码</label>
+            <input type="password" name="password" autocomplete="current-password" placeholder="请输入密码" />
+        </div>
+        <button type="submit" class="btn primary">登 录</button>
+    </form>
+    <div class="foot">账号密码配置于服务端 tunnelserver.json · 连续失败 5 次锁定 15 分钟</div>
+</div>

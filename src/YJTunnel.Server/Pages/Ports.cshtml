@@ -1,0 +1,177 @@
+@page
+@model YJTunnel.Server.Pages.PortsModel
+@{
+    ViewData["Title"] = "端口分配表";
+}
+@if (Model.Message != null)
+{
+    <div class="alert @(Model.IsError ? "err" : "ok")">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span>@Model.Message</span>
+    </div>
+}
+
+<div class="card">
+    <div class="card-head">
+        <h3>端口分配表</h3>
+        <span class="sub">共 @Model.Ports.Count 条分配 · 点击表头可排序</span>
+        <span class="spacer"></span>
+        <input type="text" placeholder="搜索端口 / 客户名 / ClientId…" data-filter="#ports-table" />
+        <a class="btn primary" href="/ports.csv" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+            导出 CSV
+        </a>
+    </div>
+    <div class="table-wrap">
+        <table class="list" id="ports-table">
+            <thead>
+                <tr>
+                    <th class="sortable" data-idx="0" data-type="num">远端端口</th>
+                    <th class="sortable" data-idx="1">客户名称</th>
+                    <th>ClientId</th>
+                    <th class="sortable" data-idx="3" data-type="num">本地端口</th>
+                    <th class="sortable" data-idx="4">状态</th>
+                    <th style="text-align:right">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Ports)
+                {
+                    <tr>
+                        <td class="mono td-main" style="font-size:13.5px">@p.RemotePort</td>
+                        <td class="td-main">@p.Name</td>
+                        <td class="mono">@p.ClientId</td>
+                        <td class="mono">@p.LocalPort <span class="chip">key: @p.MappingKey</span></td>
+                        <td>
+                            @switch (p.BindStatus)
+                            {
+                                case "ok":<span class="pill ok">● 在线已绑定</span>break;
+                                case "occupied":<span class="pill err" title="该端口被其他客户的监听持有">● 绑定失败（被他人持有）</span>break;
+                                case "pending":<span class="pill warn" title="客户在线，正在重连绑定或该端口绑定失败待重试">◌ 未绑定 · 等待客户端重连</span>break;
+                                default:<span class="pill off">○ 离线</span>break;
+                            }
+                        </td>
+                        <td style="text-align:right">
+                            <form class="inline" method="post" asp-page-handler="ChangePort"
+                                  onsubmit="return confirmChangePort(this, '@p.Name', @p.RemotePort)">
+                                <input type="hidden" name="clientId" value="@p.ClientId" />
+                                <input type="hidden" name="mappingKey" value="@p.MappingKey" />
+                                <input type="hidden" name="newPort" />
+                                <button class="btn sm">改端口</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Ports.Count == 0)
+                {
+                    <tr><td colspan="6">
+                        <div class="empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                            <p>暂无端口分配 · 客户端登录后自动分配并出现在这里</p>
+                        </div>
+                    </td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        /* 改端口模态框（v1.14，替代原生 prompt/confirm） */
+        .pill.warn { background: #fff7e6; color: #ad6800; }
+        .pmodal-mask { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .pmodal-mask.show { display: flex; }
+        .pmodal { background: #fff; border-radius: 12px; width: 460px; max-width: 94vw; box-shadow: 0 16px 48px rgba(0,0,0,.22); overflow: hidden; animation: pmodal-in .18s ease-out; }
+        @@keyframes pmodal-in { from { transform: translateY(-14px) scale(.97); opacity: 0 } to { transform: none; opacity: 1 } }
+        .pmodal-head { padding: 14px 20px; background: #fef2f2; border-bottom: 1px solid #fecaca; }
+        .pmodal-head .tag { display: inline-block; background: #dc2626; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 2px; padding: 2px 10px; border-radius: 999px; }
+        .pmodal-head h4 { margin: 8px 0 0; font-size: 15px; color: #0f172a; font-weight: 600; }
+        .pmodal-body { padding: 16px 20px; font-size: 13px; color: #334155; line-height: 1.75; }
+        .pmodal-body p { margin: 4px 0; }
+        .pmodal-body .warn-text { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px; margin: 10px 0; }
+        .pmodal-body input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; text-align: center; letter-spacing: 1px; }
+        .pmodal-body input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+        .pmodal-body .hint { color: #dc2626; min-height: 18px; margin-top: 6px; font-size: 12px; }
+        .pmodal-foot { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+        .pmodal-foot button { min-width: 88px; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+        .pmodal-foot button:hover { background: #f1f5f9; }
+        .pmodal-foot button.confirm { background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 600; }
+        .pmodal-foot button.confirm:hover { background: #b91c1c; }
+    </style>
+    <div class="pmodal-mask" id="portModal">
+        <div class="pmodal">
+            <div class="pmodal-head">
+                <span class="tag">高危操作</span>
+                <h4>修改客户「<span id="pm-name"></span>」的远端端口</h4>
+            </div>
+            <div class="pmodal-body">
+                <p>远端端口 <b class="mono" id="pm-old"></b> 将立即失效：</p>
+                <div class="warn-text">该客户所有远程客户端配置的地址（公网 IP:<span id="pm-old2"></span>）将失效，需要逐台修改为新地址。</div>
+                <p style="margin-top:10px">请输入新的远端端口：</p>
+                <input type="number" id="pm-new" min="1" max="65535" placeholder="1 - 65535" />
+                <div class="hint" id="pm-hint"></div>
+            </div>
+            <div class="pmodal-foot">
+                <button type="button" onclick="closePortModal()">取消</button>
+                <button type="button" class="confirm" onclick="submitPortModal()">确认修改</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        // D14：改端口确认交互（v1.14 样式化模态框，替代原生 prompt/confirm）
+        var _portForm = null, _portOld = 0;
+        function confirmChangePort(form, name, oldPort) {
+            _portForm = form; _portOld = oldPort;
+            document.getElementById('pm-name').textContent = name;
+            document.getElementById('pm-old').textContent = oldPort;
+            document.getElementById('pm-old2').textContent = oldPort;
+            document.getElementById('pm-new').value = '';
+            document.getElementById('pm-hint').textContent = '';
+            document.getElementById('portModal').classList.add('show');
+            setTimeout(function () { document.getElementById('pm-new').focus(); }, 60);
+            return false; // 一律拦截默认提交，由模态框确认后提交
+        }
+        function closePortModal() { document.getElementById('portModal').classList.remove('show'); }
+        function submitPortModal() {
+            var port = parseInt(document.getElementById('pm-new').value, 10);
+            var hint = document.getElementById('pm-hint');
+            if (!(port >= 1 && port <= 65535)) { hint.textContent = '端口必须是 1-65535 的数字'; return; }
+            if (port === _portOld) { hint.textContent = '新端口与当前端口相同'; return; }
+            _portForm.querySelector('[name=newPort]').value = port;
+            closePortModal();
+            _portForm.submit();
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closePortModal();
+        });
+        document.getElementById('portModal').addEventListener('click', function (e) {
+            if (e.target === this) closePortModal();
+        });
+
+        // 改端口后轮询绑定状态（v1.15）：目标映射变为"已绑定"时自动刷新页面；
+        // 30s 未成功（客户端离线/绑定失败）则停止轮询，保留状态供排查
+        var pollClient = '@Model.PendingBindClient';
+        var pollKey = '@Model.PendingBindKey';
+        if (pollClient && pollKey) {
+            var deadline = Date.now() + 30000;
+            var timer = setInterval(function () {
+                fetch('/ports-status', { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
+                    .then(function (d) {
+                        var row = (d.ports || []).find(function (p) {
+                            return p.clientId === pollClient && p.mappingKey === pollKey;
+                        });
+                        if (!row) return;
+                        if (row.bindStatus === 'ok') {
+                            clearInterval(timer);
+                            location.reload();
+                        } else if (Date.now() > deadline) {
+                            clearInterval(timer);
+                        }
+                    })
+                    .catch(function () { /* 网络抖动，下个周期重试 */ });
+            }, 1000);
+        }
+    </script>
+}

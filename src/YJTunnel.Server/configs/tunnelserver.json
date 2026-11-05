@@ -1,0 +1,27 @@
+{
+  "TunnelServer": {
+    "ControlPort": 5003,
+    "BindAddress": "0.0.0.0",
+    // 首次启动自动生成强随机 Token 并写回本文件（控制台会打印），也可自行替换为任意强随机串
+    "Tokens": [ "__GENERATE_TOKEN__" ],
+    "AllowPorts": [ { "Start": 2001, "End": 4999 } ],
+    "DenyPorts": [ 5103, 22, 3389 ],
+    "AutoRegister": true,
+    "ExtraListenPorts": [],
+    "Admin": {
+      "Enabled": true,
+      "Port": 5103,
+      "Username": "admin",
+      // 首次启动自动生成强随机密码并写回本文件（控制台会打印），务必修改
+      "Password": "__GENERATE_PASSWORD__",
+      "LockoutFailures": 5,
+      "LockoutMinutes": 15,
+      // 白名单默认 "*" 放行所有来源（5103 切勿对公网放行）；填具体 IP 可限定来源；留空=仅本机回环
+      "AllowedIps": [ "*" ]
+    },
+    "Log": {
+      "Dir": "logs",
+      "EventRetentionDays": 90
+    }
+  }
+}

@@ -1,0 +1,134 @@
+@page
+@model YJTunnel.Server.Pages.CustomersModel
+@{
+    ViewData["Title"] = "客户管理";
+    var onlineIds = Model.OnlineIds;
+}
+@if (Model.Message != null)
+{
+    <div class="alert @(Model.IsError ? "err" : "ok")">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        <span>@Model.Message</span>
+    </div>
+}
+
+<div class="card">
+    <div class="card-head"><h3>@(Model.Editing == null ? "新增客户" : $"编辑客户：{Model.Editing.Name}")</h3>
+        <span class="sub">保存后在线客户端将自动重连取新配置（&lt;10s 生效）</span>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" name="isNew" value="@(Model.Editing == null ? "1" : "0")" />
+            <div class="form-grid">
+                <div class="field">
+                    <label>ClientId</label>
+                    @if (Model.Editing == null)
+                    {
+                        <input type="text" name="clientId" placeholder="客户端生成的 GUID（见端口设置页日志）" required />
+                    }
+                    else
+                    {
+                        <input type="text" name="clientId" value="@Model.Editing.ClientId" readonly />
+                    }
+                </div>
+                <div class="field"><label>名称</label><input type="text" name="name" value="@(Model.Editing?.Name)" required placeholder="如：某某有限公司" /></div>
+                <div class="field"><label>备注</label><input type="text" name="note" value="@(Model.Editing?.Note)" placeholder="选填" /></div>
+                <div class="field"><label>状态</label>
+                    <label class="check"><input type="checkbox" name="enabled" value="true" checked="@(Model.Editing == null || Model.Editing.Enabled)" /> 启用该客户</label>
+                </div>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:10px">
+                <button type="submit" asp-page-handler="Save" class="btn primary">保存</button>
+                @if (Model.Editing != null)
+                {
+                    <a class="btn" asp-page="/Customers">取消</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-head">
+        <h3>客户列表</h3>
+        <span class="sub" id="count">@Model.Customers.Count 个客户</span>
+        <span class="spacer"></span>
+        <input type="text" placeholder="搜索名称 / ClientId / 机器名…" data-filter="#cust-table" />
+    </div>
+    <div class="table-wrap">
+        <table class="list" id="cust-table">
+            <thead>
+                <tr>
+                    <th>客户</th><th>ClientId</th><th>机器名 / 版本</th><th>最后登录</th><th>端口映射</th><th>状态</th><th class="actions" style="text-align:right">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.Customers)
+                {
+                    var online = onlineIds.Contains(c.ClientId);
+                    <tr>
+                        <td>
+                            <span style="display:inline-flex;align-items:center;gap:10px">
+                                <span class="avatar" style="background:@YJTunnel.Server.Pages.CustomersModel.AvatarColor(c.ClientId + c.Name)">@(string.IsNullOrEmpty(c.Name) ? "?" : c.Name[0].ToString())</span>
+                                <span>
+                                    <span class="td-main">@c.Name</span>
+                                    @if (!string.IsNullOrEmpty(c.Note))
+                                    {
+                                        <div style="color:var(--muted);font-size:12px">@c.Note</div>
+                                    }
+                                </span>
+                            </span>
+                        </td>
+                        <td class="mono">@c.ClientId[..Math.Min(8, c.ClientId.Length)]…<button class="ibtn" title="复制完整 ClientId" onclick="copyText('@c.ClientId')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button></td>
+                        <td>@c.MachineName <span class="chip">@c.AppVersion</span></td>
+                        <td class="mono">@c.LastLoginAt</td>
+                        <td>
+                            @foreach (var m in c.Mappings)
+                            {
+                                <span class="chip mono">@m.Key → @m.RemotePort</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!c.Enabled)
+                            {
+                                <span class="pill err">已禁用</span>
+                            }
+                            else if (online)
+                            {
+                                <span class="pill ok">在线</span>
+                            }
+                            else
+                            {
+                                <span class="pill off">离线</span>
+                            }
+                        </td>
+                        <td class="actions" style="text-align:right">
+                            <a class="btn sm" asp-page="/Customers" asp-route-edit="@c.ClientId">编辑</a>
+                            @if (online)
+                            {
+                                <form class="inline" method="post" asp-page-handler="Kick" onsubmit="return confirm('确定踢下线「@c.Name」？客户端将自动重连。')">
+                                    <input type="hidden" name="clientId" value="@c.ClientId" />
+                                    <button class="btn sm">踢下线</button>
+                                </form>
+                            }
+                            <form class="inline" method="post" asp-page-handler="Delete" onsubmit="return confirm('确定删除客户「@c.Name」？\n\n其端口分配记录将一并删除，客户端将无法登录。')">
+                                <input type="hidden" name="clientId" value="@c.ClientId" />
+                                <button class="btn sm danger">删除</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Customers.Count == 0)
+                {
+                    <tr><td colspan="7">
+                        <div class="empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <p>暂无客户 · 迁移期客户端登录后将自动建档</p>
+                        </div>
+                    </td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
