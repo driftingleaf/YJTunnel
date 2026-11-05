@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<RootNamespace>YJTunnel.Samples.ConsoleClient</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\YJTunnel\YJTunnel.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>
