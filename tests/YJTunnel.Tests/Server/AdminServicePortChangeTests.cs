@@ -15,8 +15,8 @@ public class AdminServicePortChangeTests
     {
         var wrapper = TestTunnelServer.Start(o =>
         {
-            o.DenyPorts = new List<int> { 22500 };
-            o.AllowPorts = new List<PortRange> { new(22000, 22999) };
+            o.DenyPorts = new List<int> { 24500 };
+            o.AllowPorts = new List<PortRange> { new(24000, 24999) };
         });
         return (wrapper, new AdminService(wrapper.Server, new AdminOptions()), wrapper.Server);
     }
@@ -40,11 +40,11 @@ public class AdminServicePortChangeTests
         var (wrapper, admin, host) = Create();
         try
         {
-            AddCustomer(host, "c1", "甲公司", 22001);
-            AddCustomer(host, "c2", "乙公司", 22002);
+            AddCustomer(host, "c1", "甲公司", 24001);
+            AddCustomer(host, "c2", "乙公司", 24002);
             var c1 = host.Customers.FindCustomer("c1")!;
 
-            var error = admin.ValidatePortChange(c1, "20000", 22002);
+            var error = admin.ValidatePortChange(c1, "20000", 24002);
             Assert.NotNull(error);
             Assert.Contains("乙公司", error);
         }
@@ -57,8 +57,8 @@ public class AdminServicePortChangeTests
         var (wrapper, admin, host) = Create();
         try
         {
-            var c1 = AddCustomer(host, "c1", "甲公司", 22001);
-            Assert.Null(admin.ValidatePortChange(c1, "20000", 22005));
+            var c1 = AddCustomer(host, "c1", "甲公司", 24001);
+            Assert.Null(admin.ValidatePortChange(c1, "20000", 24005));
         }
         finally { wrapper.Dispose(); }
     }
@@ -69,8 +69,8 @@ public class AdminServicePortChangeTests
         var (wrapper, admin, host) = Create();
         try
         {
-            var c1 = AddCustomer(host, "c1", "甲公司", 22001);
-            var error = admin.ValidatePortChange(c1, "20000", 22500);
+            var c1 = AddCustomer(host, "c1", "甲公司", 24001);
+            var error = admin.ValidatePortChange(c1, "20000", 24500);
             Assert.NotNull(error);
             Assert.Contains("黑名单", error);
         }
@@ -83,8 +83,8 @@ public class AdminServicePortChangeTests
         var (wrapper, admin, host) = Create();
         try
         {
-            var c1 = AddCustomer(host, "c1", "甲公司", 22001, 22002);
-            var error = admin.ValidatePortChange(c1, "20000", 22002);
+            var c1 = AddCustomer(host, "c1", "甲公司", 24001, 24002);
+            var error = admin.ValidatePortChange(c1, "20000", 24002);
             Assert.NotNull(error);
             Assert.Contains("另一映射", error);
         }
@@ -95,12 +95,12 @@ public class AdminServicePortChangeTests
     public void 改到被本机其他程序监听的端口_拒绝()
     {
         var (wrapper, admin, host) = Create();
-        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 22999);
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 24999);
         try
         {
             listener.Start();
-            var c1 = AddCustomer(host, "c1", "甲公司", 22001);
-            var error = admin.ValidatePortChange(c1, "20000", 22999);
+            var c1 = AddCustomer(host, "c1", "甲公司", 24001);
+            var error = admin.ValidatePortChange(c1, "20000", 24999);
             Assert.NotNull(error);
             Assert.Contains("占用", error);
         }
@@ -117,8 +117,8 @@ public class AdminServicePortChangeTests
         var (wrapper, admin, host) = Create();
         try
         {
-            var c1 = AddCustomer(host, "c1", "甲公司", 22001);
-            Assert.Null(admin.ValidatePortChange(c1, "20000", 22001));
+            var c1 = AddCustomer(host, "c1", "甲公司", 24001);
+            Assert.Null(admin.ValidatePortChange(c1, "20000", 24001));
         }
         finally { wrapper.Dispose(); }
     }

@@ -16,6 +16,11 @@ public sealed class TunnelConfig
     public string Token { get; set; } = "";
 
     /// <summary>
+    /// 客户端在服务端的唯一身份（GUID）。留空由宿主生成并持久化；服务端按此记忆端口分配与客户档案。
+    /// </summary>
+    public string? ClientId { get; set; }
+
+    /// <summary>
     /// 公司名称（ServerHost 启动时从 TB_System/本地缓存解析，随登录上报，服务端用于自动命名客户档案）。
     /// 留空则服务端沿用"未命名-{clientId前8位}"占位，管理台可手工改名。
     /// </summary>
