@@ -274,10 +274,31 @@ public sealed class AdminService
         return removed;
     }
 
-    public async Task KickAsync(string clientId, string operatorIp)
+    /// <summary>
+    /// 踢下线（v1.19）：断开当前会话；可选临时封禁（banMinutes>0，期内登录被拒）或永久封禁（banPermanent=true，等同禁用客户）。
+    /// 客户端将自动重连（封禁期内登录被拒，到期/解封后自动恢复）。
+    /// </summary>
+    public async Task KickAsync(string clientId, string operatorIp, int? banMinutes = null, bool banPermanent = false)
     {
-        Audit("admin_kick", $"踢下线 {clientId}", operatorIp);
-        await _server.KickClientAsync(clientId, "管理员踢下线");
+        var record = _server.Customers.FindCustomer(clientId);
+        var action = banPermanent ? "永久封禁（禁用）"
+            : banMinutes is > 0 ? $"临时封禁 {banMinutes.Value} 分钟"
+            : "仅踢下线";
+
+        if (banPermanent && record != null)
+        {
+            record.Enabled = false;
+            _server.Customers.UpsertCustomer(record);
+        }
+        else if (banMinutes is > 0 && record != null)
+        {
+            record.BannedUntil = DateTimeOffset.Now.AddMinutes(banMinutes.Value);
+            _server.Customers.UpsertCustomer(record);
+        }
+
+        Audit("admin_kick", $"{action} {clientId}", operatorIp);
+        await _server.KickClientAsync(clientId,
+            banPermanent ? "已被永久封禁" : banMinutes is > 0 ? $"已被封禁 {banMinutes.Value} 分钟" : "管理员踢下线");
     }
 
     // ------------------------------------------------------------------ 待审核

@@ -30,6 +30,11 @@ public sealed class CustomerRecord
     public string? AppVersion { get; set; }
     public string? LastLoginAt { get; set; }
 
+    /// <summary>
+    /// 临时封禁截止时间（null=未封禁；到期后首次登录自动清除）。永久封禁用 Enabled=false 表达。
+    /// </summary>
+    public DateTimeOffset? BannedUntil { get; set; }
+
     public List<MappingRecord> Mappings { get; set; } = new();
 }
 

@@ -80,6 +80,9 @@ public static class ErrorCodes
     /// <summary>服务器内部错误。</summary>
     public const int ServerError = 8;
 
-    /// <summary>错误码是否属于"登录不可重试"（Failed/等待审核终态语义）。</summary>
+    /// <summary>客户端处于封禁期（临时封禁未到期），客户端按封禁间隔重试。</summary>
+    public const int Banned = 9;
+
+    /// <summary>错误码是否属于"登录不可重试"（Failed/等待审核终态语义）。封禁(Banned)按间隔重试，不在其中。</summary>
     public static bool IsLoginFatal(int code) => code is LoginDenied or ClientDisabled or PendingApproval;
 }

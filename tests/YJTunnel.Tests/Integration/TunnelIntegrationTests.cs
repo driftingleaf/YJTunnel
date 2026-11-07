@@ -641,4 +641,60 @@ public class TunnelIntegrationTests
         DataDir = dataDir,
         Timing = TestHarness.FastTiming(),
     };
+
+    // ------------------------------------------------------------------ 封禁流程（v1.19）
+
+    /// <summary>临时封禁：期内登录被拒（Banned 态），到期自动恢复并清除封禁标记。</summary>
+    [Fact]
+    public async Task Ban_Temporary_DeniedThenAutoRecover()
+    {
+        using var echo = await TestHarness.StartEchoServerAsync();
+        using var server = NewTestServer(out var controlPort);
+        var admin = new AdminService(server.Server, new AdminOptions());
+
+        var logins = new List<LoginRespMessage>();
+        using var client = StartClient(ClientConfig(controlPort, echo.Port, 0), "ban-tmp", logins);
+        await TestHarness.WaitUntilAsync(() => client.Status.State == TunnelState.Connected, what: "首次登录");
+
+        // 临时封禁 2 秒（直接写记录字段，绕过分钟粒度参数便于快速测试）+ 踢下线
+        var record = server.Server.Customers.FindCustomer("ban-tmp")!;
+        record.BannedUntil = DateTimeOffset.Now.AddSeconds(2);
+        server.Server.Customers.UpsertCustomer(record);
+        await server.Server.KickClientAsync("ban-tmp", "封禁测试");
+
+        // 客户端重连被拒 → Banned 态（按封禁间隔重试）
+        await TestHarness.WaitUntilAsync(() => client.Status.State == TunnelState.Banned,
+            timeout: TimeSpan.FromSeconds(8), what: "进入封禁态");
+
+        // 到期自动恢复：封禁标记被登录清除，回 Connected
+        await TestHarness.WaitUntilAsync(() => client.Status.State == TunnelState.Connected,
+            timeout: TimeSpan.FromSeconds(10), what: "封禁到期自动恢复");
+        Assert.Null(server.Server.Customers.FindCustomer("ban-tmp")!.BannedUntil);
+        Assert.Equal(22000, logins[^1].Mappings.Single().RemotePort); // 端口沿用不变（D14）
+
+        await client.StopAsync();
+    }
+
+    /// <summary>永久封禁（禁用客户）：登录被拒（ClientDisabled）→ 终态 Failed，不再重试。</summary>
+    [Fact]
+    public async Task Ban_Permanent_ClientDisabled_TerminalFailed()
+    {
+        using var echo = await TestHarness.StartEchoServerAsync();
+        using var server = NewTestServer(out var controlPort);
+        var admin = new AdminService(server.Server, new AdminOptions());
+
+        var logins = new List<LoginRespMessage>();
+        using var client = StartClient(ClientConfig(controlPort, echo.Port, 0), "ban-forever", logins);
+        await TestHarness.WaitUntilAsync(() => client.Status.State == TunnelState.Connected, what: "首次登录");
+
+        var record = server.Server.Customers.FindCustomer("ban-forever")!;
+        record.Enabled = false;
+        server.Server.Customers.UpsertCustomer(record);
+        await server.Server.KickClientAsync("ban-forever", "永久封禁测试");
+
+        await TestHarness.WaitUntilAsync(() => client.Status.State == TunnelState.Failed,
+            timeout: TimeSpan.FromSeconds(8), what: "进入终态失败");
+
+        await client.StopAsync();
+    }
 }

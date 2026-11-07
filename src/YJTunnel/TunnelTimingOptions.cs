@@ -47,6 +47,9 @@ public sealed class TunnelTimingOptions
     /// <summary>待审核（PendingApproval）状态下的重试间隔。</summary>
     public TimeSpan PendingRetryInterval { get; set; } = TimeSpan.FromMinutes(5);
 
+    /// <summary>封禁（Banned）状态下的重试间隔（封禁到期后自动恢复连接）。</summary>
+    public TimeSpan BannedRetryInterval { get; set; } = TimeSpan.FromMinutes(1);
+
     /// <summary>连接/登录的网络操作超时。</summary>
     public TimeSpan ConnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
 }

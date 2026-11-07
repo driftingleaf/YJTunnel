@@ -289,8 +289,16 @@ public sealed class TunnelServer : IAsyncDisposable
                 else
                 {
                     var pending = Customers.FindPending(login.ClientId) ?? new PendingRecord { ClientId = login.ClientId };
+
+                    // 已被管理员拒绝的 clientId：直接拒绝，不再入待审核列表（与 PendingRecord.Rejected 注释语义一致）
+                    if (pending.Rejected)
+                    {
+                        Events.Session(TunnelEventLevel.Warn, "login_rejected", "该 clientId 已被拒绝接入", login.ClientId, remoteIp);
+                        await DenyLoginAsync(stream, ErrorCodes.ClientDisabled, "该客户端已被拒绝接入");
+                        return;
+                    }
+
                     pending.CompanyName = companyName ?? pending.CompanyName;
-                    pending.MachineName = login.MachineName;
                     pending.AppVersion = login.AppVersion;
                     pending.FirstSeenAt ??= DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     pending.LastTryAt = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -324,6 +332,23 @@ public sealed class TunnelServer : IAsyncDisposable
                 Events.Session(TunnelEventLevel.Warn, "client_disabled", "客户被禁用，拒绝登录", login.ClientId, remoteIp);
                 await DenyLoginAsync(stream, ErrorCodes.ClientDisabled, "客户已被禁用");
                 return;
+            }
+
+            // 封禁检查（v1.19）：临时封禁未到期 → 拒绝（客户端按封禁间隔重试）；已到期 → 自动清除并放行
+            if (customer.BannedUntil is { } bannedUntil)
+            {
+                if (bannedUntil > DateTimeOffset.Now)
+                {
+                    var leftMinutes = Math.Ceiling((bannedUntil - DateTimeOffset.Now).TotalMinutes);
+                    Events.Session(TunnelEventLevel.Warn, "login_banned",
+                        $"客户端处于封禁期（剩余 {leftMinutes:0} 分钟）", login.ClientId, remoteIp);
+                    await DenyLoginAsync(stream, ErrorCodes.Banned,
+                        $"封禁中，剩余 {leftMinutes:0} 分钟后可自动恢复");
+                    return;
+                }
+                customer.BannedUntil = null;
+                Customers.UpsertCustomer(customer);
+                Events.Session(TunnelEventLevel.Info, "ban_expired", "封禁已到期，自动解除", login.ClientId, remoteIp);
             }
 
             // 同 clientId 旧会话：epoch 接管，强断旧会话（其监听器随注销释放）

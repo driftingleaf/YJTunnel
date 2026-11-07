@@ -93,6 +93,10 @@
                             {
                                 <span class="pill err">已禁用</span>
                             }
+                            else if (c.BannedUntil is { } b && b > DateTime.Now)
+                            {
+                                <span class="pill warn" title="临时封禁中，到期后客户端自动恢复">已封禁至 @b.LocalDateTime.ToString("MM-dd HH:mm")</span>
+                            }
                             else if (online)
                             {
                                 <span class="pill ok">在线</span>
@@ -106,8 +110,10 @@
                             <a class="btn sm" asp-page="/Customers" asp-route-edit="@c.ClientId">编辑</a>
                             @if (online)
                             {
-                                <form class="inline" method="post" asp-page-handler="Kick" onsubmit="return confirm('确定踢下线「@c.Name」？客户端将自动重连。')">
+                                <form class="inline" method="post" asp-page-handler="Kick" onsubmit="return openKickModal(this, '@c.Name')">
                                     <input type="hidden" name="clientId" value="@c.ClientId" />
+                                    <input type="hidden" name="banMode" />
+                                    <input type="hidden" name="banMinutes" />
                                     <button class="btn sm">踢下线</button>
                                 </form>
                             }
@@ -132,3 +138,72 @@
     </div>
 </div>
 
+
+<style>
+    .kmodal-mask { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .kmodal-mask.show { display: flex; }
+    .kmodal { background: #fff; border-radius: 12px; width: 440px; max-width: 94vw; box-shadow: 0 16px 48px rgba(0,0,0,.22); overflow: hidden; animation: kmodal-in .18s ease-out; }
+    @@keyframes kmodal-in { from { transform: translateY(-14px) scale(.97); opacity: 0 } to { transform: none; opacity: 1 } }
+    .kmodal-head { padding: 14px 20px; background: #fef2f2; border-bottom: 1px solid #fecaca; }
+    .kmodal-head .tag { display: inline-block; background: #dc2626; color: #fff; font-size: 11px; font-weight: 600; letter-spacing: 2px; padding: 2px 10px; border-radius: 999px; }
+    .kmodal-head h4 { margin: 8px 0 0; font-size: 15px; color: #0f172a; font-weight: 600; }
+    .kmodal-body { padding: 14px 20px; font-size: 13px; color: #334155; line-height: 1.7; }
+    .kmodal-body label.opt { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 6px 0; cursor: pointer; }
+    .kmodal-body label.opt:has(input:checked) { border-color: #dc2626; background: #fef2f2; }
+    .kmodal-body select { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+    .kmodal-foot { padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+    .kmodal-foot button { min-width: 88px; padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+    .kmodal-foot button:hover { background: #f1f5f9; }
+    .kmodal-foot button.confirm { background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 600; }
+    .kmodal-foot button.confirm:hover { background: #b91c1c; }
+</style>
+
+<div class="kmodal-mask" id="kickModal">
+    <div class="kmodal">
+        <div class="kmodal-head">
+            <span class="tag">高危操作</span>
+            <h4>踢下线客户「<span id="km-name"></span>」</h4>
+        </div>
+        <div class="kmodal-body">
+            <label class="opt"><input type="radio" name="kmode" value="disconnect" checked /> 仅断开当前会话（客户端几秒内自动重连）</label>
+            <label class="opt"><input type="radio" name="kmode" value="temp" /> 临时封禁（期内登录将被拒绝，到期自动恢复）：
+                <select id="km-minutes">
+                    <option value="5">5 分钟</option>
+                    <option value="30" selected>30 分钟</option>
+                    <option value="60">1 小时</option>
+                    <option value="1440">24 小时</option>
+                </select>
+            </label>
+            <label class="opt"><input type="radio" name="kmode" value="permanent" /> 永久封禁（禁用客户，需编辑客户重新启用）</label>
+        </div>
+        <div class="kmodal-foot">
+            <button type="button" onclick="closeKickModal()">取消</button>
+            <button type="button" class="confirm" onclick="submitKickModal()">确认执行</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var _kickForm = null;
+    function openKickModal(form, name) {
+        _kickForm = form;
+        document.getElementById('km-name').textContent = name;
+        document.getElementById('kickModal').classList.add('show');
+        return false; // 一律拦截默认提交，由模态框确认后提交
+    }
+    function closeKickModal() { document.getElementById('kickModal').classList.remove('show'); }
+    function submitKickModal() {
+        if (!_kickForm) return;
+        var mode = document.querySelector('input[name="kmode"]:checked').value;
+        _kickForm.querySelector('[name=banMode]').value = mode;
+        _kickForm.querySelector('[name=banMinutes]').value = mode === 'temp' ? document.getElementById('km-minutes').value : 0;
+        closeKickModal();
+        _kickForm.submit();
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeKickModal();
+    });
+    document.getElementById('kickModal').addEventListener('click', function (e) {
+        if (e.target === this) closeKickModal();
+    });
+</script>

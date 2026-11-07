@@ -57,10 +57,26 @@ public class CustomersModel : PageModel
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostKickAsync(string clientId)
+    /// <summary>踢下线（v1.19）：可选临时封禁（分钟）或永久封禁（禁用客户）。仅断开则不传封禁参数。</summary>
+    public async Task<IActionResult> OnPostKickAsync(string clientId, string banMode, int banMinutes)
     {
-        await _admin.KickAsync(clientId, RemoteIp);
-        StatusMessage = "已踢下线，客户端将自动重连";
+        int? minutes = null;
+        var permanent = false;
+        switch (banMode)
+        {
+            case "temp":
+                if (banMinutes <= 0) { StatusMessage = "封禁时长无效"; StatusIsError = true; return RedirectToPage(); }
+                minutes = banMinutes;
+                break;
+            case "permanent":
+                permanent = true;
+                break;
+        }
+
+        await _admin.KickAsync(clientId, RemoteIp, banMinutes: minutes, banPermanent: permanent);
+        StatusMessage = permanent ? "已永久封禁（禁用客户），客户端登录将被拒绝"
+            : minutes != null ? $"已踢下线并封禁 {minutes} 分钟，到期后客户端自动恢复"
+            : "已踢下线，客户端将自动重连";
         return RedirectToPage();
     }
 

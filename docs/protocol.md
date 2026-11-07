@@ -44,6 +44,7 @@ YJTunnel 使用**单 TCP 端口承载两类连接**，靠连接的第一个字�
 | 5 | PortOccupied | 该映射本轮未绑定，随退避重试 |
 | 7 | ProtocolError | 断开 |
 | 8 | ServerError | 断开重试 |
+| 9 | Banned（临时封禁期内） | 按封禁间隔重试（默认 1 分钟），到期自动恢复 |
 
 ## 登录流程
 

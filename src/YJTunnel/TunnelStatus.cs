@@ -21,6 +21,9 @@ public enum TunnelState
     /// <summary>等待服务端审核（PendingApproval），5 分钟间隔重试。</summary>
     PendingApproval,
 
+    /// <summary>处于封禁期（Banned），按封禁间隔重试，到期自动恢复。</summary>
+    Banned,
+
     /// <summary>已手动停止。</summary>
     Stopped,
 }

@@ -113,6 +113,13 @@ public sealed class TunnelClient : IDisposable
                     await DelaySafeAsync(_timing.PendingRetryInterval, ct);
                     continue;
                 }
+                if (ex.Code == ErrorCodes.Banned)
+                {
+                    // 临时封禁：按封禁间隔重试，到期自动恢复（审核/管理台踢下线选封禁时进入此分支）
+                    Publish(WithState(TunnelState.Banned, ex));
+                    await DelaySafeAsync(_timing.BannedRetryInterval, ct);
+                    continue;
+                }
                 // LoginDenied / ClientDisabled：终态，不进退避重连
                 Publish(WithState(TunnelState.Failed, ex));
                 return;

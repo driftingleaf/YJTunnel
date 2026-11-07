@@ -27,6 +27,7 @@ public static class TestHarness
         StableSessionReset = TimeSpan.FromSeconds(1),
         FailuresBeforeFailover = 2,
         PendingRetryInterval = TimeSpan.FromMilliseconds(500),
+        BannedRetryInterval = TimeSpan.FromMilliseconds(400),
         ConnectTimeout = TimeSpan.FromSeconds(3),
     };
 
