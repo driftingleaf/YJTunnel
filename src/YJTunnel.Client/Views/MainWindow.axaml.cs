@@ -152,7 +152,14 @@ public partial class MainWindow : Window
     {
         if (_tray is not null) return;
         if (App.Current is not { } app) return;
-        if (TrayIcon.GetIcons(app) is not { } icons) return;
+
+        // Icons 附加属性默认为 null，必须先 SetIcons 初始化（GetIcons 为 null 时直接返回会导致托盘永远不出现）
+        var icons = TrayIcon.GetIcons(app);
+        if (icons is null)
+        {
+            icons = new TrayIcons();
+            TrayIcon.SetIcons(app, icons);
+        }
 
         var menu = new NativeMenu();
 

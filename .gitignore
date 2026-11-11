@@ -21,3 +21,4 @@ customers.json
 customers.json.bak
 customers.json.tmp
 pending.json
+.tmp/

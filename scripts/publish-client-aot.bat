@@ -19,6 +19,16 @@ echo ==^> dotnet publish (NativeAOT win-x64) -^> %OUT%
 rem IlcUseEnvironmentalTools=true：跳过 findvcvarsall（部分环境 vswhere -latest 会漏报实例），直接用 vcvars 环境里的 link/lib
 dotnet publish "%~dp0..\src\YJTunnel.Client\YJTunnel.Client.csproj" -c Release -r win-x64 -o "%OUT%" --nologo -p:IlcUseEnvironmentalTools=true || exit /b 1
 
+rem 剔除调试符号（发布件不需要 pdb，运行不受影响）
+del /q "%OUT%\*.pdb" 2>nul
+
+rem 打 zip 分发包（AOT 产物为 exe + 4 个 native dll：Skia/GLES/HarfBuzz/onigwrap，无法嵌入单文件）
+set ZIP=%~dp0..\dist\YJTunnel.Client-win-x64.zip
+if exist "%ZIP%" del /q "%ZIP%"
+powershell -NoProfile -Command "Compress-Archive -Path '%OUT:\=\\%\*' -DestinationPath '%ZIP:\=\\%'" || exit /b 1
+
 echo ==^> 产物：
 dir /b "%OUT%"
+echo ==^> 分发包：%ZIP%
+for %%F in ("%ZIP%") do echo     大小 %%~zF 字节
 endlocal

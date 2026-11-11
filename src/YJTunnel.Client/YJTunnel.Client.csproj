@@ -16,7 +16,10 @@
 		              全球化不变模式下抛 CultureNotFoundException（实测）。
 		     注意 2：部分环境 vswhere -latest 会漏报实例（本机已复现），导致 NativeAOT 找不到 link.exe。
 		              发布脚本 scripts/publish-client-aot.bat 先 vcvarsall 再 publish 并传
-		              -p:IlcUseEnvironmentalTools=true 绕过该查找（LINK/LIB 由 vcvars 环境提供）。 -->
+		              -p:IlcUseEnvironmentalTools=true 绕过该查找（LINK/LIB 由 vcvars 环境提供）。
+		     注意 3：PublishAot 与 PublishSingleFile 互斥（ILCompiler 8 明确禁止）。Avalonia 的渲染后端
+		              SkiaSharp/libSkiaSharp/av_libglesv2/HarfBuzz 是运行时 LoadLibrary 的 native 依赖，
+		              必须随 exe 并排落盘，无法嵌入——发布脚本最终打 zip 分发，目录内仅 1 个 exe + 4 个 dll。 -->
 		<PublishAot>true</PublishAot>
 		<Version>1.0.0</Version>
 	</PropertyGroup>
