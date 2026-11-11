@@ -17,6 +17,7 @@
 - **内置管理台**：客户档案（登录自动记录公司名）、端口分配表（CSV 导出）、待审核接入、操作日志
 - **首次启动自愈**：缺配置自动从模板生成；凭据占位符自动生成强随机值并打印到控制台
 - **跨平台**：.NET 8，Windows 服务 / Linux systemd 双部署形态；管理台内嵌 Kestrel
+- **桌面客户端**：Avalonia 12 + TKCode.Arc，NativeAOT 原生单文件（约 70MB），托盘常驻/可视化映射/开机自启
 
 ## 架构
 
@@ -76,6 +77,19 @@ sudo mkdir -p /opt/yj-tunnel && sudo cp -r dist/tunnel-linux/* /opt/yj-tunnel/
 
 ### 2. 客户端（内网机器）
 
+**方式 A：开箱即用的桌面客户端（推荐）**
+
+`src/YJTunnel.Client` 是基于 Avalonia 12 + TKCode.Arc 的桌面产品客户端，NativeAOT 发布为原生可执行文件（无需 .NET 运行时）：
+
+```bash
+# Windows（需 VS2022「使用 C++ 的桌面开发」+ Windows 11 SDK）
+scripts\publish-client-aot.bat        # 产物 → dist/client/win-x64
+```
+
+功能：可视化编辑端口映射、五态状态横幅、托盘常驻（四色状态图标/右键菜单/复制公网地址）、关闭即最小化、开机自启、单实例、诊断一键复制、踢下线封禁状态展示。详见 [客户端手册](docs/client.md)。
+
+**方式 B：嵌入自己的程序**
+
 项目引用 `src/YJTunnel/YJTunnel.csproj`（net8.0，无第三方依赖）：
 
 ```csharp
@@ -103,7 +117,7 @@ client.Start();   // 内部单一重连循环，断线自动恢复
 ## Quick Start (English)
 
 1. **Server** (public machine): `bash src/YJTunnel.Server/deploy/publish-win.sh`, copy `dist/tunnel-win`, run `deploy\install-win.bat`. First start auto-generates the config, a random login **Token** and the **admin password** (printed to console). Allow TCP 5003 + 2001-4999 in your cloud security group.
-2. **Client** (NAT-ed machine): reference `src/YJTunnel/YJTunnel.csproj`, build a `TunnelConfig` (server addr/port, shared token, forwards), call `TunnelClient.Start()`. It reconnects forever with exponential backoff.
+2. **Client** (NAT-ed machine): either publish the desktop client (`scripts\publish-client-aot.bat`, self-contained native exe) or reference `src/YJTunnel/YJTunnel.csproj`, build a `TunnelConfig` (server addr/port, shared token, forwards), call `TunnelClient.Start()`. It reconnects forever with exponential backoff.
 3. **Admin UI**: `http://server:5103` — customers, port table (change port pushes config to the client in seconds), pending approvals, audit log.
 
 See `docs/` (Chinese) for protocol spec, deployment details and admin manual.
@@ -113,6 +127,7 @@ See `docs/` (Chinese) for protocol spec, deployment details and admin manual.
 - [协议规格](docs/protocol.md)
 - [部署手册](docs/deploy.md)
 - [管理台手册](docs/admin.md)
+- [客户端手册](docs/client.md)
 
 ## 安全注意事项
 
