@@ -6,6 +6,8 @@
             xmlns:conv="using:YJTunnel.Client.Views"
             x:Class="YJTunnel.Client.Views.MainWindow"
             x:DataType="vm:MainViewModel"
+            Icon="/Assets/app.ico"
+            FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI, PingFang SC"
             Title="YJTunnel 客户端" Width="880" Height="620"
             CanResize="True" MinWidth="720" MinHeight="540"
             WindowDecorations="Full">
@@ -16,164 +18,245 @@
 
     <Window.Resources>
         <conv:BoolToOpacityConverter x:Key="RowOpacity" />
+        <!-- Designer Cut 语义色（与原型一致） -->
+        <SolidColorBrush x:Key="YtAccent" Color="#3B63F3" />
+        <SolidColorBrush x:Key="YtAccentSoft" Color="#EAEFFF" />
+        <SolidColorBrush x:Key="YtGreen" Color="#17995A" />
+        <SolidColorBrush x:Key="YtGreenSoft" Color="#E4F5EC" />
+        <SolidColorBrush x:Key="YtOrange" Color="#D97C14" />
+        <SolidColorBrush x:Key="YtOrangeSoft" Color="#FDF1E0" />
+        <SolidColorBrush x:Key="YtRed" Color="#DE4B4B" />
+        <SolidColorBrush x:Key="YtRedSoft" Color="#FDEAEA" />
+        <SolidColorBrush x:Key="YtInk2" Color="#6A7280" />
+        <SolidColorBrush x:Key="YtInk3" Color="#9AA1AC" />
+        <FontFamily x:Key="YtMono">Cascadia Code, Cascadia Mono, Consolas, monospace</FontFamily>
     </Window.Resources>
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
 
         <!-- ① Hero 状态卡 -->
-        <Border Grid.Row="0" x:Name="HeroBorder" CornerRadius="12" BorderThickness="1"
+        <Border Grid.Row="0" x:Name="HeroBorder" CornerRadius="16" BorderThickness="1"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                 Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
-                Margin="20,16,20,0">
+                Margin="22,18,22,0" Padding="22,18,22,0">
             <StackPanel>
-                <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,14,16,12">
-                    <Border x:Name="HeroDot" Width="36" Height="36" CornerRadius="18"
-                            Background="{DynamicResource SystemControlForegroundBaseHighBrush}">
-                        <arc:ArcGlyph x:Name="HeroDotGlyph" Size="17" Foreground="White"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <StackPanel Grid.Column="1" Margin="14,0,0,0" VerticalAlignment="Center">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2,0,16">
+                    <!-- 状态光球：外光晕 + 实心球 -->
+                    <Panel VerticalAlignment="Center">
+                        <Border x:Name="HeroDotGlow" Width="54" Height="54" CornerRadius="27"
+                                IsHitTestVisible="False" Opacity="0.16" />
+                        <Border x:Name="HeroDot" Width="44" Height="44" CornerRadius="22"
+                                Background="{DynamicResource SystemControlForegroundBaseHighBrush}">
+                            <arc:ArcGlyph x:Name="HeroDotGlyph" Size="19" Foreground="White"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Panel>
+                    <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <TextBlock x:Name="HeroTitleText" Text="未启动" FontSize="16.5" FontWeight="SemiBold" />
-                            <Border x:Name="HeroWhenBadge" CornerRadius="999" Padding="9,2"
+                            <TextBlock x:Name="HeroTitleText" Text="未启动" FontSize="19" FontWeight="Bold"
+                                       LetterSpacing="-0.4" />
+                            <Border x:Name="HeroWhenBadge" CornerRadius="999" Padding="10,3"
                                     Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                                     BorderThickness="1" IsVisible="False" VerticalAlignment="Center">
-                                <TextBlock x:Name="HeroWhenText" FontSize="11" Opacity="0.85" />
+                                <TextBlock x:Name="HeroWhenText" FontSize="11" Foreground="{StaticResource YtInk2}" />
                             </Border>
                         </StackPanel>
                         <TextBlock x:Name="HeroSubText" Text="配置完成后点击「启动」接入隧道"
-                                   FontSize="12.5" Opacity="0.72" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" />
+                                   FontSize="12.5" Foreground="{StaticResource YtInk2}" Margin="0,5,0,0"
+                                   TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <arc:Button Grid.Column="2" x:Name="StartStopButton" Content="启 动"
-                                Variant="Primary" MinWidth="104" Height="40" FontSize="14"
-                                VerticalAlignment="Center" Click="OnStartStopClick" />
+                                Variant="Primary" MinWidth="112" Height="44" FontSize="14" FontWeight="SemiBold"
+                                CornerRadius="12" VerticalAlignment="Center" Click="OnStartStopClick" />
                 </Grid>
 
-                <!-- 指标条 -->
-                <Grid ColumnDefinitions="*,1,*,1,*">
-                    <Grid RowDefinitions="Auto,Auto" Margin="20,4,20,12" ColumnDefinitions="Auto,*">
-                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Timer}" Size="12" Opacity="0.6" />
-                        <TextBlock Grid.Column="1" Text="在线时长" FontSize="11.5" Opacity="0.72" Margin="6,0,0,0" />
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="MetricUptime" Text="—" FontSize="20" FontWeight="SemiBold" Margin="0,3,0,0" />
-                    </Grid>
+                <!-- 指标带：图标块 + 双行数值 -->
+                <Grid ColumnDefinitions="*,1,*,1,*" Margin="0,0,0,16">
+                    <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,14,12,0">
+                        <Border x:Name="MetricUptimeIcon" Width="34" Height="34" CornerRadius="10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1" VerticalAlignment="Center">
+                            <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Timer}" Size="15"
+                                          Foreground="{StaticResource YtInk2}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="在线时长" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                            <TextBlock x:Name="MetricUptime" Text="—" FontSize="17" FontWeight="Bold"
+                                       Margin="0,1,0,0" />
+                        </StackPanel>
+                    </StackPanel>
                     <Border Grid.Column="1" BorderThickness="1,0,0,0"
-                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-                    <Grid Grid.Column="2" RowDefinitions="Auto,Auto" Margin="20,4,20,12" ColumnDefinitions="Auto,*">
-                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Gauge}" Size="12" Opacity="0.6" />
-                        <TextBlock Grid.Column="1" Text="网络延迟" FontSize="11.5" Opacity="0.72" Margin="6,0,0,0" />
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="MetricLatency" Text="—" FontSize="20" FontWeight="SemiBold" Margin="0,3,0,0" />
-                    </Grid>
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="0,14,0,16" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" Margin="22,14,12,0">
+                        <Border Width="34" Height="34" CornerRadius="10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1" VerticalAlignment="Center">
+                            <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Activity}" Size="15"
+                                          Foreground="{StaticResource YtInk2}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="网络延迟" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                            <TextBlock x:Name="MetricLatency" Text="—" FontSize="17" FontWeight="Bold" Margin="0,1,0,0" />
+                        </StackPanel>
+                    </StackPanel>
                     <Border Grid.Column="3" BorderThickness="1,0,0,0"
-                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-                    <Grid Grid.Column="4" RowDefinitions="Auto,Auto" Margin="20,4,20,12" ColumnDefinitions="Auto,*">
-                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.LockOpen}" Size="12" Opacity="0.6" />
-                        <TextBlock Grid.Column="1" Text="已开放端口" FontSize="11.5" Opacity="0.72" Margin="6,0,0,0" />
-                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" x:Name="MetricPorts" Text="—" FontSize="20" FontWeight="SemiBold" Margin="0,3,0,0" />
-                    </Grid>
+                            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}" Margin="0,14,0,16" />
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="12" Margin="22,14,0,0">
+                        <Border x:Name="MetricPortsIcon" Width="34" Height="34" CornerRadius="10"
+                                Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                BorderThickness="1" VerticalAlignment="Center">
+                            <arc:ArcGlyph x:Name="MetricPortsIconGlyph" Data="{x:Static arcc:ArcIcons.LockOpen}" Size="15"
+                                          Foreground="{StaticResource YtInk2}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="已开放端口" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                            <TextBlock x:Name="MetricPorts" Text="—" FontSize="17" FontWeight="Bold" Margin="0,1,0,0" />
+                        </StackPanel>
+                    </StackPanel>
                 </Grid>
             </StackPanel>
         </Border>
 
         <!-- ② 映射区 -->
-        <ScrollViewer Grid.Row="2" Margin="20,14,20,6">
+        <ScrollViewer Grid.Row="2" Margin="22,16,22,6">
             <StackPanel Spacing="10">
 
-                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="2,0,2,2">
-                    <arc:ArcGlyph VerticalAlignment="Center" Size="13"
-                                  Foreground="{DynamicResource SystemControlForegroundAccentBrush}"
-                                  Data="{x:Static arcc:ArcIcons.ArrowDownUp}" />
-                    <TextBlock Grid.Column="1" Text="端口映射" FontSize="14.5" FontWeight="SemiBold"
-                               Margin="8,0,0,0" VerticalAlignment="Center" />
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="2,0,2,4">
+                    <Border Width="26" Height="26" CornerRadius="8" Background="{StaticResource YtAccentSoft}"
+                            VerticalAlignment="Center">
+                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Globe}" Size="14" Foreground="{StaticResource YtAccent}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="端口映射" FontSize="15" FontWeight="Bold" LetterSpacing="-0.2"
+                               Margin="10,0,0,0" VerticalAlignment="Center" />
                     <arc:Badge Grid.Column="2" x:Name="MappingCountBadge" Content="0 条" Tone="Neutral"
                                Margin="10,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                    <arc:Button Grid.Column="3" Content="编辑配置" Variant="Secondary" Size="Small"
+                    <arc:Button Grid.Column="3" Content="配 置" Variant="Secondary" Size="Small"
                                 VerticalAlignment="Center" Click="OnEditConfigClick" />
                     <arc:Button Grid.Column="4" Content="＋ 添加映射" Variant="Primary" Size="Small"
                                 VerticalAlignment="Center" Margin="8,0,0,0" Click="OnAddMappingClick" />
                 </Grid>
 
-                <!-- 空态 -->
-                <StackPanel x:Name="MappingEmpty" IsVisible="True" Margin="0,16,0,10" Spacing="8">
-                    <Border Width="54" Height="54" CornerRadius="15" HorizontalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="{DynamicResource SystemAccentColorDark3}" Offset="0" />
-                                <GradientStop Color="{DynamicResource SystemChromeLowColor}" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
-                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.ArrowDownUp}" Size="24"
-                                      Foreground="{DynamicResource SystemControlForegroundAccentBrush}"
-                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Border>
-                    <TextBlock Text="还没有端口映射" FontWeight="SemiBold" FontSize="14.5"
-                               TextAlignment="Center" HorizontalAlignment="Center" Margin="0,6,0,0" />
-                    <TextBlock Text="添加一条映射，把内网服务（如数据库、文件服务）发布到公网"
-                               Opacity="0.62" FontSize="12.5" TextWrapping="Wrap" TextAlignment="Center"
-                               MaxWidth="430" HorizontalAlignment="Center" />
-                    <arc:Button Content="＋ 添加第一条映射" Variant="Primary" HorizontalAlignment="Center"
-                                Margin="0,8,0,0" Click="OnAddMappingClick" />
-                </StackPanel>
+                <!-- 空态：虚线框 + 蓝渐变图标 + 三步胶囊 -->
+                <Panel x:Name="MappingEmpty" IsVisible="True" Margin="0,12,0,8">
+                    <Rectangle RadiusX="16" RadiusY="16" StrokeThickness="1.5"
+                               Stroke="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                               StrokeDashArray="4,3" />
+                    <StackPanel Margin="0,34,0,32" Spacing="0">
+                        <Border Width="64" Height="64" CornerRadius="18" HorizontalAlignment="Center">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0.9,1">
+                                    <GradientStop Color="#383B63F3" Offset="0" />
+                                    <GradientStop Color="#0F3B63F3" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Globe}" Size="28" Foreground="{StaticResource YtAccent}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="还没有端口映射" FontWeight="Bold" FontSize="15" LetterSpacing="-0.2"
+                                   TextAlignment="Center" HorizontalAlignment="Center" Margin="0,14,0,0" />
+                        <TextBlock Text="三步把内网服务发布到公网" Opacity="0.75" FontSize="12.5"
+                                   TextAlignment="Center" HorizontalAlignment="Center" Margin="0,5,0,0" />
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" Margin="0,10,0,0">
+                            <Border CornerRadius="999" BorderThickness="1" Padding="10,3"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <TextBlock Text="① 填本地端口" FontSize="10.5" Foreground="{StaticResource YtInk2}" />
+                            </Border>
+                            <Border CornerRadius="999" BorderThickness="1" Padding="10,3"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <TextBlock Text="② 申请公网端口" FontSize="10.5" Foreground="{StaticResource YtInk2}" />
+                            </Border>
+                            <Border CornerRadius="999" BorderThickness="1" Padding="10,3"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                    Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+                                <TextBlock Text="③ 外网直连" FontSize="10.5" Foreground="{StaticResource YtInk2}" />
+                            </Border>
+                        </StackPanel>
+                        <arc:Button Content="＋ 添加第一条映射" Variant="Primary" HorizontalAlignment="Center"
+                                    Margin="0,16,0,0" Click="OnAddMappingClick" />
+                    </StackPanel>
+                </Panel>
 
                 <!-- 映射行列表 -->
                 <ItemsControl x:Name="MappingsList" ItemsSource="{Binding Mappings}" IsVisible="False">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:MappingItemViewModel">
-                            <Border CornerRadius="11" Padding="12,10" Margin="0,1"
+                            <Border CornerRadius="13" Padding="14,12" Margin="0,1"
                                     Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
                                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
                                     BorderThickness="1">
-                                <Grid ColumnDefinitions="Auto,0.9*,1.55*,Auto,Auto,Auto"
+                                <Grid ColumnDefinitions="Auto,0.9*,1.55*,Auto,Auto"
                                       Opacity="{Binding Enabled, Converter={StaticResource RowOpacity}}">
 
                                     <arc:Checkbox IsChecked="{Binding Enabled}" VerticalAlignment="Center" />
 
-                                    <StackPanel Grid.Column="1" Margin="10,0,8,0" VerticalAlignment="Center">
+                                    <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13.5"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding LocalTarget}" FontSize="11.5" Opacity="0.62"
-                                                   TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                                   LetterSpacing="-0.2" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding LocalTarget}" FontSize="11.5"
+                                                   Foreground="{StaticResource YtInk3}"
+                                                   TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                                     </StackPanel>
 
-                                    <!-- 流向胶囊：本地 → 公网（行内可编辑） -->
-                                    <Border Grid.Column="2" CornerRadius="9" VerticalAlignment="Center" Margin="6,0"
+                                    <!-- 流向胶囊：LAN | PUB 双格分色 -->
+                                    <Border Grid.Column="2" CornerRadius="10" VerticalAlignment="Center" Margin="6,0"
                                             Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
                                             BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                                            BorderThickness="1" Padding="10,5">
-                                        <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
-                                            <TextBlock Text="本地" FontSize="10.5" Opacity="0.55" VerticalAlignment="Center" />
-                                            <arc:Input Text="{Binding LocalIp}" IsLabelVisible="False"
-                                                       Placeholder="127.0.0.1" Width="96" MinHeight="26" />
-                                            <arc:Input Text="{Binding LocalPortText}" IsLabelVisible="False"
-                                                       Placeholder="端口" Width="62" MinHeight="26"
-                                                       FontFamily="Consolas, 'Cascadia Mono', monospace" />
-                                            <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.ArrowRight}" Size="13"
-                                                          Opacity="0.5" VerticalAlignment="Center" />
-                                            <TextBlock Text="公网" FontSize="10.5" Opacity="0.55" VerticalAlignment="Center" Margin="3,0,0,0" />
-                                            <arc:Input Text="{Binding RemotePortText}" IsLabelVisible="False"
-                                                       Placeholder="端口" Width="62" MinHeight="26"
-                                                       FontFamily="Consolas, 'Cascadia Mono', monospace" />
-                                            <arc:Button Variant="Ghost" Click="OnCopyRowAddressClick" Tag="{Binding}"
-                                                        VerticalAlignment="Center" Padding="5,4" MinWidth="26" MinHeight="26">
-                                                <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Copy}" Size="13" />
-                                            </arc:Button>
-                                        </StackPanel>
+                                            BorderThickness="1">
+                                        <Grid ColumnDefinitions="Auto,1*">
+                                            <StackPanel Orientation="Horizontal" Spacing="7" Margin="12,5">
+                                                <TextBlock Text="LAN" FontSize="9.5" FontWeight="Bold" LetterSpacing="1"
+                                                           Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                                <arc:Input Text="{Binding LocalIp}" IsLabelVisible="False"
+                                                           Placeholder="127.0.0.1" Width="92" MinHeight="24" />
+                                                <arc:Input Text="{Binding LocalPortText}" IsLabelVisible="False"
+                                                           Placeholder="端口" Width="62" MinHeight="24" FontFamily="Cascadia Code, Consolas, monospace" />
+                                            </StackPanel>
+                                            <Border Grid.Column="1" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                                                    BorderThickness="1,0,0,0"
+                                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                                                <StackPanel Orientation="Horizontal" Spacing="7" Margin="12,5">
+                                                    <TextBlock Text="PUB" FontSize="9.5" FontWeight="Bold" LetterSpacing="1"
+                                                               Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding PublicHostText}" FontFamily="Cascadia Code, Consolas, monospace"
+                                                               FontSize="12" Foreground="{StaticResource YtInk2}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <arc:Input Text="{Binding RemotePortText}" IsLabelVisible="False"
+                                                               Placeholder="端口" Width="66" MinHeight="24" FontFamily="Cascadia Code, Consolas, monospace" />
+                                                    <arc:Button Variant="Ghost" Click="OnCopyRowAddressClick" Tag="{Binding}"
+                                                                VerticalAlignment="Center" Padding="4,3" MinWidth="24" MinHeight="24">
+                                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Copy}" Size="13" />
+                                                    </arc:Button>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
                                     </Border>
 
                                     <TextBlock Grid.Column="3" Text="{Binding StatusText}" VerticalAlignment="Center"
-                                               FontSize="11.5" Margin="10,0" Opacity="0.9"
+                                               FontSize="11.5" FontWeight="SemiBold" Margin="12,0"
                                                Foreground="{Binding StatusBrush}" TextTrimming="CharacterEllipsis" />
-                                    <arc:Button Grid.Column="4" Content="✕" Variant="Ghost" VerticalAlignment="Center"
-                                                Padding="6,4" MinWidth="26" MinHeight="26"
-                                                Click="OnRemoveMappingClick" Tag="{Binding}" />
+                                    <arc:Button Grid.Column="4" Variant="Ghost" VerticalAlignment="Center"
+                                                Padding="5,3" MinWidth="26" MinHeight="26"
+                                                Click="OnRemoveMappingClick" Tag="{Binding}">
+                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.X}" Size="13" />
+                                    </arc:Button>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Grid ColumnDefinitions="*,Auto" Margin="4,2,2,0">
-                    <TextBlock Opacity="0.55" FontSize="12" VerticalAlignment="Center"
+                <Grid ColumnDefinitions="*,Auto" Margin="2,4,2,0">
+                    <TextBlock FontSize="12" Foreground="{StaticResource YtInk3}" VerticalAlignment="Center"
                                Text="服务端分配的公网端口以登录回执为准；修改后点「保存并应用」生效。" />
                     <arc:Button Grid.Column="1" x:Name="ApplyButton" Content="保存并应用"
                                 Variant="Primary" Click="OnApplyClick" />
@@ -182,23 +265,28 @@
         </ScrollViewer>
 
         <!-- ③ 底栏 -->
-        <Border Grid.Row="3" Padding="20,9"
+        <Border Grid.Row="3" Padding="24,9"
                 Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
                 BorderThickness="0,1,0,0"
                 BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto">
-                <arc:ArcGlyph VerticalAlignment="Center" Size="12" Opacity="0.6"
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,Auto">
+                <arc:ArcGlyph VerticalAlignment="Center" Size="13" Foreground="{StaticResource YtInk3}"
                               Data="{x:Static arcc:ArcIcons.Server}" />
                 <TextBlock Grid.Column="1" x:Name="ServerTextBlock" VerticalAlignment="Center"
-                           FontFamily="Consolas, 'Cascadia Mono', monospace" FontSize="11.5" Margin="7,0,0,0" />
-                <TextBlock Grid.Column="2" x:Name="CompanyTextBlock" VerticalAlignment="Center"
-                           FontSize="12" Opacity="0.8" Margin="18,0,0,0" />
-                <TextBlock Grid.Column="3" x:Name="StateShortBlock" VerticalAlignment="Center"
-                           FontSize="12" Opacity="0.65" Margin="18,0,0,0" />
-                <arc:Button Grid.Column="5" Content="复制诊断" Variant="Ghost" Size="Small"
+                           FontFamily="Cascadia Code, Consolas, monospace" FontSize="11.5" FontWeight="SemiBold"
+                           Margin="7,0,0,0" />
+                <Ellipse Grid.Column="2" Width="3" Height="3" Fill="{StaticResource YtInk3}" Opacity="0.6"
+                         VerticalAlignment="Center" Margin="14,0" />
+                <arc:ArcGlyph Grid.Column="3" VerticalAlignment="Center" Size="13" Foreground="{StaticResource YtInk3}"
+                              Data="{x:Static arcc:ArcIcons.Share}" />
+                <TextBlock Grid.Column="4" x:Name="CompanyTextBlock" VerticalAlignment="Center"
+                           FontSize="12" Margin="7,0,0,0" />
+                <TextBlock Grid.Column="5" x:Name="StateShortBlock" VerticalAlignment="Center"
+                           FontSize="12" Foreground="{StaticResource YtInk2}" Margin="14,0,0,0" />
+                <arc:Button Grid.Column="6" Content="诊 断" Variant="Ghost" Size="Small"
                             HorizontalAlignment="Right" Click="OnCopyDiagnosticsClick" />
-                <arc:Button Grid.Column="6" Content="隐藏到托盘" Variant="Ghost" Size="Small"
-                            Margin="6,0,0,0" Click="OnHideToTrayClick" />
+                <arc:Button Grid.Column="7" Content="托 盘" Variant="Ghost" Size="Small"
+                            Margin="4,0,0,0" Click="OnHideToTrayClick" />
             </Grid>
         </Border>
     </Grid>

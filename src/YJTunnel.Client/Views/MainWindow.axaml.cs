@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using SkiaSharp;
 using TKCode.Arc;
 using YJTunnel.Client.Services;
 using YJTunnel.Client.ViewModels;
@@ -98,6 +99,7 @@ public partial class MainWindow : Window
     {
         var tone = _vm.StateTone;
         var c = ToneColors.GetValueOrDefault(tone, ToneColors["neutral"]);
+        var stateColor = Color.FromRgb(c.R, c.G, c.B);
 
         // Hero 底色 = 主色 8% 透明（中性状态透明）
         if (tone == "neutral")
@@ -105,7 +107,10 @@ public partial class MainWindow : Window
         else
             HeroBorder.Background = new SolidColorBrush(Color.FromArgb(20, c.R, c.G, c.B));
 
-        HeroDot.Background = new SolidColorBrush(c);
+        // 光球：实心 + 外光晕（同色 blur 模拟，14% 透明度）
+        var stateBrush = new SolidColorBrush(stateColor);
+        HeroDot.Background = stateBrush;
+        HeroDotGlow.Background = stateBrush;
         HeroDotGlyph.Data = StateGlyphs.GetValueOrDefault(tone, ArcIcons.Play);
 
         HeroTitleText.Text = _vm.StateText;
@@ -134,11 +139,22 @@ public partial class MainWindow : Window
             : _vm.UptimeMinutes > 0 ? $"{_vm.UptimeMinutes}m" : "—";
         MetricLatency.Text = _vm.LatencyMs > 0 ? $"{_vm.LatencyMs} ms" : "—";
         MetricPorts.Text = _vm.IsRunning ? $"{_vm.OpenPorts} 个" : "—";
-        // 在线且有开放端口时数值着绿色
+
+        // 在线时：已开放端口图标块与数值整体转绿（原型的语义着色）
         if (_vm.StateTone == "success" && _vm.OpenPorts > 0)
-            MetricPorts.Foreground = new SolidColorBrush(Color.Parse("#1E9E57"));
+        {
+            MetricPorts.Foreground = new SolidColorBrush(Color.Parse("#17995A"));
+            MetricPortsIcon.Background = new SolidColorBrush(Color.Parse("#E4F5EC"));
+            MetricPortsIcon.BorderThickness = new Thickness(0);
+            MetricPortsIconGlyph.Foreground = new SolidColorBrush(Color.Parse("#17995A"));
+        }
         else
+        {
             MetricPorts.ClearValue(TextBlock.ForegroundProperty);
+            MetricPortsIcon.ClearValue(Border.BackgroundProperty);
+            MetricPortsIcon.ClearValue(Border.BorderThicknessProperty);
+            MetricPortsIconGlyph.ClearValue(ArcGlyph.ForegroundProperty);
+        }
     }
 
     private void ApplyMappingVisibility()
@@ -312,22 +328,74 @@ public partial class MainWindow : Window
         _tray.ToolTipText = $"YJTunnel 客户端 - {_vm.StateText}";
     }
 
-    /// <summary>托盘图标：灰=未启动 蓝=连接中 绿=在线 橙=重连 红=失败/封禁。</summary>
+    /// <summary>
+    /// 托盘图标：与 app.ico 同设计（黑玻璃方块 + 白双端口 + 蓝隧道块），
+    /// 背景随状态着色：灰=未启动 蓝=连接中 绿=在线 橙=重连 红=失败/封禁。
+    /// SkiaSharp 运行时渲染，保证 32px 下线条清晰。
+    /// </summary>
     private static WindowIcon MakeTrayIcon(string tone)
     {
         const int size = 32;
+        float s = size / 32f;
         var c = ToneColors.GetValueOrDefault(tone, ToneColors["neutral"]);
-        var color = Color.FromRgb(c.R, c.G, c.B);
-        var bmp = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96, 96));
-        using (var ctx = bmp.CreateDrawingContext())
+
+        // 状态色：在线绿饱和、其余按 tone；深浅与原型一致
+        var bgColor = tone switch
         {
-            ctx.FillRectangle(new SolidColorBrush(color), new Rect(2, 2, 28, 28), 6);
-            var white = new SolidColorBrush(Colors.White);
-            ctx.FillRectangle(white, new Rect(8, 10, 5, 12), 2);
-            ctx.FillRectangle(white, new Rect(19, 10, 5, 12), 2);
-            ctx.FillRectangle(white, new Rect(8, 13.5, 16, 5), 2);
+            "success" => new SKColor(23, 153, 90),
+            "info" => new SKColor(59, 99, 243),
+            "warning" => new SKColor(217, 124, 20),
+            "danger" => new SKColor(222, 75, 75),
+            _ => new SKColor(42, 47, 54),   // 未启动=黑玻璃底色
+        };
+
+        using var surface = SKSurface.Create(new SKImageInfo(size, size));
+        var canvas = surface.Canvas;
+        canvas.Clear(SKColors.Transparent);
+
+        using (var bgPath = RoundedPath(2 * s, 2 * s, 28 * s, 28 * s, 7 * s))
+        using (var paint = new SKPaint())
+        {
+            paint.IsAntialias = true;
+            paint.Shader = SKShader.CreateLinearGradient(
+                new SKPoint(0, 2 * s), new SKPoint(0, 30 * s),
+                new[] { bgColor, bgColor.WithRed((byte)(bgColor.Red * 0.72)).WithGreen((byte)(bgColor.Green * 0.72)).WithBlue((byte)(bgColor.Blue * 0.72)) },
+                new[] { 0f, 1f }, SKShaderTileMode.Clamp);
+            canvas.DrawPath(bgPath, paint);
         }
-        return new WindowIcon(bmp);
+
+        // 白双竖块
+        using (var paint = new SKPaint())
+        {
+            paint.IsAntialias = true;
+            paint.Color = new SKColor(246, 248, 250);
+            using (var p = RoundedPath(7.4f * s, 10.2f * s, 4.6f * s, 11.6f * s, 1.6f * s))
+                canvas.DrawPath(p, paint);
+            using (var p = RoundedPath(20.0f * s, 10.2f * s, 4.6f * s, 11.6f * s, 1.6f * s))
+                canvas.DrawPath(p, paint);
+        }
+
+        // 隧道横块（未启动=蓝；在线=白，弱化以突出绿底）
+        var midColor = tone == "success" ? new SKColor(255, 255, 255, 235) : new SKColor(91, 124, 255);
+        using (var mPath = RoundedPath(7.4f * s, 13.6f * s, 17.2f * s, 4.8f * s, 1.6f * s))
+        using (var paint = new SKPaint())
+        {
+            paint.IsAntialias = true;
+            paint.Color = midColor;
+            canvas.DrawPath(mPath, paint);
+        }
+
+        using var img = surface.Snapshot();
+        using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+        using var ms = new MemoryStream(data.ToArray());
+        return new WindowIcon(new Bitmap(ms));
+    }
+
+    private static SKPath RoundedPath(float x, float y, float w, float h, float r)
+    {
+        var p = new SKPath();
+        p.AddRoundRect(new SKRect(x, y, x + w, y + h), r, r, SKPathDirection.Clockwise);
+        return p;
     }
 
     // ---- Toast / 剪贴板 ----

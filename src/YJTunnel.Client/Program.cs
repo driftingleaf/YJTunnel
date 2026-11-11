@@ -36,6 +36,7 @@ internal static class Program
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .UseArc(arc => arc
+                .WithTheme(t => t.Accent(Avalonia.Media.Color.Parse("#2F5FEE")))   // 品牌蓝种子（默认 Neutral 黑白灰）
                 .UseArcCore()
                 .UseArcControls())
             .AfterSetup(_ =>

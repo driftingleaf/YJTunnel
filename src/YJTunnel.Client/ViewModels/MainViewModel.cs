@@ -96,7 +96,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var cfgHost = string.IsNullOrWhiteSpace(Config.ServerAddr)
             ? (ServerText == "-" ? null : ServerText.Split(':')[0])
             : Config.ServerAddr.Trim();
-        foreach (var vm in Mappings) vm.PublicHost = cfgHost;
+        foreach (var vm in Mappings) { vm.PublicHost = cfgHost; vm.RaisePublicHost(); }
 
         SyncMappingStatuses(s);
         TrayStateRefreshRequested?.Invoke();
@@ -124,6 +124,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         foreach (var vm in Mappings)
         {
             vm.PublicHost = cfgHost;
+            vm.RaisePublicHost();
             var m = s.Mappings.FirstOrDefault(x => x.Key == vm.Key);
             vm.ApplyServerStatus(m?.Status, m?.Msg);
         }
@@ -311,7 +312,7 @@ public sealed class MappingItemViewModel : INotifyPropertyChanged
         => new(new MappingItem(), changed);
 
     public bool Enabled { get => _enabled; set { _enabled = value; Raise(nameof(Enabled)); Raise(nameof(DisplayName)); Changed?.Invoke(); } }
-    public string LocalIp { get => _localIp; set { _localIp = value; Raise(nameof(LocalIp)); Raise(nameof(LocalTarget)); Raise(nameof(PublicAddress)); Changed?.Invoke(); } }
+    public string LocalIp { get => _localIp; set { _localIp = value; Raise(nameof(LocalIp)); Raise(nameof(LocalTarget)); Raise(nameof(PublicAddress)); Raise(nameof(PublicHostText)); Changed?.Invoke(); } }
     public int LocalPort { get => _localPort; set { _localPort = value; RaiseAll(); } }
     public int RemotePort { get => _remotePort; set { _remotePort = value; RaiseAll(); } }
     public string Note { get => _note; set { _note = value; Raise(nameof(Note)); Raise(nameof(DisplayName)); Changed?.Invoke(); } }
@@ -334,6 +335,12 @@ public sealed class MappingItemViewModel : INotifyPropertyChanged
 
     /// <summary>由 VM 统一设置的当前服务端主机（ActiveServer 去端口）。</summary>
     public string? PublicHost { get; set; }
+
+    /// <summary>流向胶囊 PUB 格显示的域名（未配置时显示 …）。</summary>
+    public string PublicHostText => string.IsNullOrEmpty(PublicHost) ? "…" : PublicHost;
+
+    /// <summary>PublicHost 由 VM 批量赋值后调用（属性 setter 不可用于派生值通知）。</summary>
+    public void RaisePublicHost() => Raise(nameof(PublicHostText));
 
     /// <summary>NumberField.ValueText 是 string 绑定；空串=0。</summary>
     public string LocalPortText
@@ -410,7 +417,7 @@ public sealed class MappingItemViewModel : INotifyPropertyChanged
         Raise(nameof(Description));
         Raise(nameof(DisplayName));
         Raise(nameof(LocalTarget));
-        Raise(nameof(PublicAddress));
+        Raise(nameof(PublicAddress)); Raise(nameof(PublicHostText));
         Changed?.Invoke();
     }
 

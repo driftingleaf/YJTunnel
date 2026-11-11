@@ -9,6 +9,7 @@
 		<RootNamespace>YJTunnel.Client</RootNamespace>
 		<AssemblyName>YJTunnel.Client</AssemblyName>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<ApplicationIcon>Assets\app.ico</ApplicationIcon>
 		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 		<!-- AOT（P0 验证项）：发布用 dotnet publish -r win-x64。
 		     需 VS2022「使用 C++ 的桌面开发」+ Windows 11 SDK。
@@ -29,6 +30,10 @@
 		<PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
 		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
 		<PackageReference Include="TKCode.Arc" Version="1.0.*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\app.ico" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -26,7 +26,7 @@ public partial class ConfigDialog : Window
     {
         var c = _vm.Config;
         ServerAddrInput.Text = c.ServerAddr;
-        ServerPortInput.Value = c.ServerPort <= 0 ? 5003 : c.ServerPort;
+        ServerPortInput.Text = (c.ServerPort <= 0 ? 5003 : c.ServerPort).ToString();
         TokenInput.Text = c.Token;
         CompanyNameInput.Text = c.CompanyName;
         MinimizeToTrayCheck.IsChecked = c.MinimizeToTray;
@@ -39,7 +39,8 @@ public partial class ConfigDialog : Window
     {
         var updated = _vm.Config;
         updated.ServerAddr = ServerAddrInput.Text?.Trim() ?? "";
-        updated.ServerPort = (int)ServerPortInput.Value;
+        _ = int.TryParse(ServerPortInput.Text?.Trim(), out var port);
+        updated.ServerPort = Math.Clamp(port, 1, 65535);
         updated.Token = TokenInput.Text?.Trim() ?? "";
         updated.CompanyName = CompanyNameInput.Text?.Trim() ?? "";
         updated.MinimizeToTray = MinimizeToTrayCheck.IsChecked == true;
