@@ -5,6 +5,7 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using TKCode.Arc;
 using YJTunnel.Client.Services;
 using YJTunnel.Client.ViewModels;
@@ -14,6 +15,37 @@ namespace YJTunnel.Client.Views;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _vm = new();
+    private TrayIcon? _tray;
+    private bool _forceClose;
+
+    // ---- 状态主题（tone → 主色） ----
+
+    private static readonly Dictionary<string, Color> ToneColors = new()
+    {
+        ["info"] = Color.Parse("#2F5FEE"),
+        ["success"] = Color.Parse("#1E9E57"),
+        ["warning"] = Color.Parse("#D9822B"),
+        ["danger"] = Color.Parse("#D6484C"),
+        ["neutral"] = Color.Parse("#9AA2AC"),
+    };
+
+    private static readonly Dictionary<string, Geometry> StateGlyphs = new()
+    {
+        ["idle"] = ArcIcons.Play,
+        ["info"] = ArcIcons.Hourglass,
+        ["success"] = ArcIcons.LockOpen,
+        ["warning"] = ArcIcons.RefreshCw,
+        ["danger"] = ArcIcons.Ban,
+        ["neutral"] = ArcIcons.Play,
+    };
+
+    private static readonly Dictionary<string, AlertTone> BannerTones = new()
+    {
+        ["info"] = AlertTone.Info,
+        ["success"] = AlertTone.Success,
+        ["warning"] = AlertTone.Warning,
+        ["danger"] = AlertTone.Danger,
+    };
 
     public MainWindow()
     {
@@ -29,6 +61,7 @@ public partial class MainWindow : Window
                 case nameof(MainViewModel.StateTone):
                 case nameof(MainViewModel.StateText):
                 case nameof(MainViewModel.StateDetail):
+                case nameof(MainViewModel.StateWhen):
                 case nameof(MainViewModel.ServerText):
                 case nameof(MainViewModel.CompanyText):
                     ApplyState();
@@ -37,33 +70,84 @@ public partial class MainWindow : Window
                     StartStopButton.Content = _vm.StartStopText;
                     StartStopButton.Variant = _vm.IsRunning ? ButtonVariant.Secondary : ButtonVariant.Primary;
                     break;
+                case nameof(MainViewModel.UptimeMinutes):
+                case nameof(MainViewModel.LatencyMs):
+                case nameof(MainViewModel.OpenPorts):
+                    ApplyMetrics();
+                    break;
+                case nameof(MainViewModel.MappingCount):
+                    ApplyMappingVisibility();
+                    break;
             }
         };
 
         Closing += OnWindowClosing;
-        Opened += (_, _) => { _vm.Attach(); UpdateTrayIcon(); };
+        Opened += (_, _) =>
+        {
+            _vm.Attach();
+            UpdateTrayIcon();
+            ApplyMetrics();
+            ApplyMappingVisibility();
+            if (Program.StartMinimized) Hide();
+        };
     }
 
-    // ---- 状态横幅（VM 字符串驱动，Arc 类型留在 View） ----
-
-    private static readonly Dictionary<string, AlertTone> Tones = new()
-    {
-        ["info"] = AlertTone.Info,
-        ["success"] = AlertTone.Success,
-        ["warning"] = AlertTone.Warning,
-        ["danger"] = AlertTone.Danger,
-    };
+    // ---- Hero 状态渲染 ----
 
     private void ApplyState()
     {
-        StateBanner.Tone = Tones.GetValueOrDefault(_vm.StateTone, AlertTone.Info);
-        StateTextBlock.Text = _vm.StateText;
-        StateDetailBlock.Text = _vm.StateDetail;
+        var tone = _vm.StateTone;
+        var c = ToneColors.GetValueOrDefault(tone, ToneColors["neutral"]);
+
+        // Hero 底色 = 主色 8% 透明（中性状态透明）
+        if (tone == "neutral")
+            HeroBorder.Background = new SolidColorBrush(Colors.Transparent);
+        else
+            HeroBorder.Background = new SolidColorBrush(Color.FromArgb(20, c.R, c.G, c.B));
+
+        HeroDot.Background = new SolidColorBrush(c);
+        HeroDotGlyph.Data = StateGlyphs.GetValueOrDefault(tone, ArcIcons.Play);
+
+        HeroTitleText.Text = _vm.StateText;
+        HeroSubText.Text = _vm.StateDetail;
+        if (!string.IsNullOrEmpty(_vm.StateWhen))
+        {
+            HeroWhenBadge.IsVisible = true;
+            HeroWhenText.Text = _vm.StateWhen;
+        }
+        else
+        {
+            HeroWhenBadge.IsVisible = false;
+        }
+
         ServerTextBlock.Text = _vm.ServerText;
         CompanyTextBlock.Text = _vm.CompanyText;
         StateShortBlock.Text = _vm.StateText;
         Title = $"YJTunnel 客户端 - {_vm.StateText}";
         UpdateTrayIcon();
+    }
+
+    private void ApplyMetrics()
+    {
+        MetricUptime.Text = _vm.UptimeMinutes >= 60
+            ? $"{_vm.UptimeMinutes / 60}h {_vm.UptimeMinutes % 60}m"
+            : _vm.UptimeMinutes > 0 ? $"{_vm.UptimeMinutes}m" : "—";
+        MetricLatency.Text = _vm.LatencyMs > 0 ? $"{_vm.LatencyMs} ms" : "—";
+        MetricPorts.Text = _vm.IsRunning ? $"{_vm.OpenPorts} 个" : "—";
+        // 在线且有开放端口时数值着绿色
+        if (_vm.StateTone == "success" && _vm.OpenPorts > 0)
+            MetricPorts.Foreground = new SolidColorBrush(Color.Parse("#1E9E57"));
+        else
+            MetricPorts.ClearValue(TextBlock.ForegroundProperty);
+    }
+
+    private void ApplyMappingVisibility()
+    {
+        var hasMappings = _vm.MappingCount > 0;
+        MappingCountBadge.Content = $"{_vm.MappingCount} 条";
+        MappingCountBadge.Tone = hasMappings ? BadgeTone.Neutral : BadgeTone.Warning;
+        MappingsList.IsVisible = hasMappings;
+        MappingEmpty.IsVisible = !hasMappings;
     }
 
     // ---- 事件处理 ----
@@ -80,24 +164,37 @@ public partial class MainWindow : Window
         _vm.StartTunnel();   // 校验失败弹 Toast；成功即（重）启隧道
     }
 
-    private void OnAddMappingClick(object? sender, RoutedEventArgs e) => _vm.AddMappingRow();
+    private void OnAddMappingClick(object? sender, RoutedEventArgs e)
+    {
+        _vm.AddMappingRow();
+        ApplyMappingVisibility();
+        // 滚到底让新行可见
+        if (MappingsList.IsVisible && this.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault() is { } sv)
+            sv.ScrollToEnd();
+    }
 
     private void OnEditConfigClick(object? sender, RoutedEventArgs e)
-    {
-        // 首版：连接配置（服务端/令牌/公司名）在弹窗中编辑
-        _ = ShowConfigDialogAsync();
-    }
-
-    /// <summary>连接配置弹窗：编辑服务端地址/端口/令牌/公司名，保存后按需重启。</summary>
-    private async Task ShowConfigDialogAsync()
-    {
-        var dialog = new ConfigDialog(_vm);
-        await dialog.ShowDialog(this);
-    }
+        => _ = new ConfigDialog(_vm).ShowDialog(this);
 
     private void OnRemoveMappingClick(object? sender, RoutedEventArgs e)
     {
-        if ((sender as Control)?.Tag is MappingItemViewModel row) _vm.RemoveMappingRow(row);
+        if ((sender as Control)?.Tag is MappingItemViewModel row)
+        {
+            _vm.RemoveMappingRow(row);
+            ApplyMappingVisibility();
+        }
+    }
+
+    private async void OnCopyRowAddressClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as Control)?.Tag is not MappingItemViewModel row) return;
+        if (row.RemotePort <= 0 || string.IsNullOrEmpty(row.PublicHost))
+        {
+            ShowToast("当前未在线，没有可复制的公网地址");
+            return;
+        }
+        await SetClipboardTextAsync(row.PublicAddress);
+        ShowToast($"已复制 {row.PublicAddress}");
     }
 
     private async void OnCopyDiagnosticsClick(object? sender, RoutedEventArgs e)
@@ -117,14 +214,14 @@ public partial class MainWindow : Window
 
     // ---- 关闭即最小化 ----
 
-    private bool _forceClose;
-
     private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_forceClose || !_vm.MinimizeOnClose) return;   // 真退出走默认
         e.Cancel = true;
         HideToTray();
     }
+
+    /// <summary>托盘菜单"退出"调用：跳过最小化逻辑直接关闭。</summary>
     public void ForceClose()
     {
         _forceClose = true;
@@ -145,8 +242,6 @@ public partial class MainWindow : Window
     }
 
     // ---- 托盘 ----
-
-    private TrayIcon? _tray;
 
     private void EnsureTray()
     {
@@ -221,14 +316,8 @@ public partial class MainWindow : Window
     private static WindowIcon MakeTrayIcon(string tone)
     {
         const int size = 32;
-        var color = tone switch
-        {
-            "success" => Colors.SeaGreen,
-            "info" => Colors.RoyalBlue,
-            "warning" => Colors.DarkOrange,
-            "danger" => Colors.IndianRed,
-            _ => Colors.Gray,
-        };
+        var c = ToneColors.GetValueOrDefault(tone, ToneColors["neutral"]);
+        var color = Color.FromRgb(c.R, c.G, c.B);
         var bmp = new RenderTargetBitmap(new PixelSize(size, size), new Vector(96, 96));
         using (var ctx = bmp.CreateDrawingContext())
         {
