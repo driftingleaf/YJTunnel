@@ -4,5 +4,25 @@
              RequestedThemeVariant="Default">
     <Application.Styles>
         <FluentTheme />
+
+        <!-- 行内端口数字框：紧凑、居中、融入胶囊（Designer Cut） -->
+        <Style Selector="TextBox.port">
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#00FFFFFF" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+        <Style Selector="TextBox.port:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#14000000" />
+            <Setter Property="BorderBrush" Value="#00FFFFFF" />
+        </Style>
+        <Style Selector="TextBox.port:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#3B63F3" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BoxShadow" Value="0 0 2 2 #143B63F3" />
+        </Style>
     </Application.Styles>
 </Application>
