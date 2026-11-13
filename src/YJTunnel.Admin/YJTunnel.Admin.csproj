@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>latest</LangVersion>
+		<RootNamespace>YJTunnel.Admin</RootNamespace>
+		<AssemblyName>YJTunnel.Admin</AssemblyName>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<ApplicationIcon>Assets\app.ico</ApplicationIcon>
+		<AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+		<!-- AOT：与客户端同一发布管线（scripts/publish-admin-aot.bat）。
+		     注意同客户端：不可开 InvariantGlobalization（TKCode.Arc 需要 en-us culture）。 -->
+		<PublishAot>true</PublishAot>
+		<Version>1.0.0</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Avalonia" Version="12.1.4" />
+		<PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+		<PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+		<PackageReference Include="TKCode.Arc" Version="1.0.*" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AvaloniaResource Include="Assets\app.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- 本机一体机模式：内嵌隧道引擎（TunnelServer + AdminService） -->
+		<ProjectReference Include="..\YJTunnel\YJTunnel.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -22,3 +22,4 @@ customers.json.bak
 customers.json.tmp
 pending.json
 .tmp/
+.tmp-api-test/

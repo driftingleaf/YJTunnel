@@ -1,0 +1,23 @@
+<arc:Window xmlns="https://github.com/avaloniaui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+            x:Class="YJTunnel.Admin.Views.PortDialog"
+            Title="修改端口" Width="380" SizeToContent="Height"
+            CanResize="False" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+    <StackPanel Margin="22,20" Spacing="12">
+        <TextBlock x:Name="TitleText" FontSize="15" FontWeight="Bold" />
+        <TextBlock x:Name="CurrentText" FontSize="11.5" Opacity="0.62" />
+
+        <arc:Input x:Name="PortInput" Label="新公网端口" Placeholder="1-65535" />
+
+        <TextBlock Text="保存后在线客户端 10 秒内自动切换；端口占用/越界会立即报错。"
+                   FontSize="11" Opacity="0.55" TextWrapping="Wrap" />
+
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+            <Button Content="取 消" Classes="btn" HorizontalAlignment="Left" Click="OnCancelClick" />
+            <Button Grid.Column="1" Content="保 存" Classes="btn primary" MinWidth="88"
+                    IsDefault="True" Click="OnSaveClick" />
+        </Grid>
+    </StackPanel>
+</arc:Window>

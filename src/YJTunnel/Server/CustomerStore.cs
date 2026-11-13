@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using System.Text.Json.Serialization;
 
 namespace YJTunnel.Server;
@@ -60,14 +61,10 @@ public sealed class PendingRecord
 /// </summary>
 public sealed class CustomerStore : IDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        // 中文客户名/备注不转义，保证 customers.json 可直接人工编辑
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
+    /// <summary>源生成类型元数据（AOT 安全）：按 T 分派。</summary>
+    private static JsonTypeInfo<List<T>> GetListTypeInfo<T>() => typeof(T) == typeof(CustomerRecord)
+        ? (JsonTypeInfo<List<T>>)(object)ServerJson.Store.ListCustomerRecord
+        : (JsonTypeInfo<List<T>>)(object)ServerJson.Store.ListPendingRecord;
 
     private readonly ReaderWriterLockSlim _lock = new();
     private readonly string _customersPath;
@@ -97,7 +94,7 @@ public sealed class CustomerStore : IDisposable
             return new List<T>();
         try
         {
-            var list = JsonSerializer.Deserialize<List<T>>(File.ReadAllText(path, Encoding.UTF8), JsonOptions);
+            var list = JsonSerializer.Deserialize(File.ReadAllText(path, Encoding.UTF8), GetListTypeInfo<T>());
             // 仅在本次成功解析后才把当前版备份为 .bak（防止把损坏内容覆盖掉唯一好备份）
             File.Copy(path, path + ".bak", overwrite: true);
             return list ?? new List<T>();
@@ -109,7 +106,7 @@ public sealed class CustomerStore : IDisposable
             {
                 var bak = path + ".bak";
                 if (File.Exists(bak))
-                    return JsonSerializer.Deserialize<List<T>>(File.ReadAllText(bak, Encoding.UTF8), JsonOptions) ?? new List<T>();
+                    return JsonSerializer.Deserialize(File.ReadAllText(bak, Encoding.UTF8), GetListTypeInfo<T>()) ?? new List<T>();
             }
             catch { /* 彻底放弃，空表启动 */ }
             return new List<T>();
@@ -118,7 +115,7 @@ public sealed class CustomerStore : IDisposable
 
     private static void SaveList<T>(string path, List<T> list)
     {
-        var json = JsonSerializer.Serialize(list, JsonOptions);
+        var json = JsonSerializer.Serialize(list, GetListTypeInfo<T>());
         var tmp = path + ".tmp";
         File.WriteAllText(tmp, json, Encoding.UTF8);
         if (File.Exists(path))

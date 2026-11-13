@@ -1,0 +1,121 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="YJTunnel.Admin.App"
+             RequestedThemeVariant="Light">
+    <Application.Resources>
+        <SolidColorBrush x:Key="YtAccent" Color="#3B63F3" />
+        <SolidColorBrush x:Key="YtAccentSoft" Color="#EAEFFF" />
+        <SolidColorBrush x:Key="YtGreen" Color="#17995A" />
+        <SolidColorBrush x:Key="YtGreenSoft" Color="#E4F5EC" />
+        <SolidColorBrush x:Key="YtOrange" Color="#D97C14" />
+        <SolidColorBrush x:Key="YtOrangeSoft" Color="#FDF1E0" />
+        <SolidColorBrush x:Key="YtRed" Color="#DE4B4B" />
+        <SolidColorBrush x:Key="YtRedSoft" Color="#FDEAEA" />
+        <SolidColorBrush x:Key="YtInk" Color="#16181D" />
+        <SolidColorBrush x:Key="YtInk2" Color="#6A7280" />
+        <SolidColorBrush x:Key="YtInk3" Color="#9AA1AC" />
+        <SolidColorBrush x:Key="YtLine" Color="#E5E7EC" />
+        <SolidColorBrush x:Key="YtLine2" Color="#EEF0F3" />
+        <SolidColorBrush x:Key="YtPanel" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="YtPanel2" Color="#F6F7F9" />
+        <FontFamily x:Key="YtMono">Cascadia Code, Cascadia Mono, Consolas, monospace</FontFamily>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- 行内端口数字框 -->
+        <Style Selector="TextBox.port">
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#00FFFFFF" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+        <Style Selector="TextBox.port:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="#14000000" />
+            <Setter Property="BorderBrush" Value="#00FFFFFF" />
+        </Style>
+        <Style Selector="TextBox.port:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="#3B63F3" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BoxShadow" Value="0 0 2 2 #143B63F3" />
+        </Style>
+
+        <!-- 按钮 -->
+        <Style Selector="Button.btn">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="13,6" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk}" />
+        </Style>
+        <Style Selector="Button.btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="BorderBrush" Value="#C9CED6" />
+        </Style>
+        <Style Selector="Button.btn.primary">
+            <Setter Property="Background" Value="{StaticResource YtInk}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtInk}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.btn.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2C3138" />
+            <Setter Property="BorderBrush" Value="#2C3138" />
+        </Style>
+        <Style Selector="Button.btn.ghost">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk2}" />
+        </Style>
+        <Style Selector="Button.btn.ghost:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk}" />
+        </Style>
+        <Style Selector="Button.btn.danger">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="BorderBrush" Value="#F0C9CA" />
+            <Setter Property="Foreground" Value="{StaticResource YtRed}" />
+        </Style>
+        <Style Selector="Button.btn.danger:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtRedSoft}" />
+        </Style>
+        <Style Selector="Button.btn.sm">
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <!-- 端口 chip -->
+        <Style Selector="Button.chip">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtLine2}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontFamily" Value="{StaticResource YtMono}" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk2}" />
+        </Style>
+        <Style Selector="Button.chip:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtAccentSoft}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtAccent}" />
+        </Style>
+
+        <!-- 徽章 -->
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="9,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.badgeText">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Application.Styles>
+</Application>

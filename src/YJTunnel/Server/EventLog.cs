@@ -39,11 +39,6 @@ public sealed class EventLog : IDisposable
 
     private Timer? _retentionTimer;
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    };
-
     public EventLog(string dataDir, int retentionDays = 90)
     {
         var dir = Path.Combine(dataDir, "logs");
@@ -59,7 +54,7 @@ public sealed class EventLog : IDisposable
 
     /// <summary>会话级事件：登录/注销/绑定结果/配置变更/管理操作/PortOccupied/心跳收割——全记。</summary>
     public void Session(TunnelEventLevel level, string type, string message,
-        string? clientId = null, string? remoteIp = null, object? data = null)
+        string? clientId = null, string? remoteIp = null, EventData? data = null)
         => Write(level, type, message, clientId, remoteIp, data);
 
     /// <summary>连接级失败：attach 超时、数据连接异常——每 IP 每分钟 ≤10 条。</summary>
@@ -125,7 +120,7 @@ public sealed class EventLog : IDisposable
             Write(TunnelEventLevel.Info, "port_stats",
                 $"端口 {port} 近1分钟：连接 {s.Connections} 次，上行 {s.BytesUp} B，下行 {s.BytesDown} B",
                 clientId: null, remoteIp: null,
-                data: new { port, connections = s.Connections, bytesUp = s.BytesUp, bytesDown = s.BytesDown });
+                data: new EventData { Port = port, Connections = s.Connections, BytesUp = s.BytesUp, BytesDown = s.BytesDown });
             s.Connections = 0;
             s.BytesUp = 0;
             s.BytesDown = 0;
@@ -133,27 +128,23 @@ public sealed class EventLog : IDisposable
         }
     }
 
-    /// <summary>管理台查询事件（倒序，最多 limit 条）。</summary>
+    /// <summary>管理台查询事件（倒序，最多 limit 条，取的是**最新** limit 条）。</summary>
     public List<Dictionary<string, object?>> Query(string? clientIdFilter, string? typeFilter, int limit = 500)
     {
-        var result = new List<Dictionary<string, object?>>();
+        // 文件是追加序（时间正序）：滚动保留最后 limit 条匹配项，再倒序返回。
+        // （v1.21 修复：原实现按“前 limit 条”截断，日志变长后查询永远返回最早的一批。）
+        var window = new Queue<Dictionary<string, object?>>();
         lock (_ioLock)
         {
             if (!File.Exists(_path))
-                return result;
+                return new List<Dictionary<string, object?>>();
             using var fs = new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var reader = new StreamReader(fs, Encoding.UTF8);
             string? line;
-            var skipped = 0;
             while ((line = reader.ReadLine()) != null)
             {
-                if (limit > 0 && result.Count >= limit)
-                {
-                    skipped++;
-                    continue;
-                }
                 Dictionary<string, object?>? entry = null;
-                try { entry = JsonSerializer.Deserialize<Dictionary<string, object?>>(line); }
+                try { entry = ToDictionary(JsonSerializer.Deserialize(line, ServerJson.Events.EventEntry)); }
                 catch { continue; }
                 if (entry == null) continue;
                 if (!string.IsNullOrEmpty(clientIdFilter)
@@ -162,31 +153,32 @@ public sealed class EventLog : IDisposable
                 if (!string.IsNullOrEmpty(typeFilter)
                     && !string.Equals(entry.TryGetValue("type", out var t) ? t?.ToString() : null, typeFilter, StringComparison.OrdinalIgnoreCase))
                     continue;
-                result.Add(entry);
+                window.Enqueue(entry);
+                while (limit > 0 && window.Count > limit)
+                    window.Dequeue();
             }
-            _ = skipped;
         }
-        // 文件是追加序（时间正序），查询返回倒序（最新在前）
-        result.Reverse();
+        var result = window.ToList();
+        result.Reverse(); // 最新在前
         return result;
     }
 
-    private void Write(TunnelEventLevel level, string type, string message, string? clientId, string? remoteIp, object? data)
+    private void Write(TunnelEventLevel level, string type, string message, string? clientId, string? remoteIp, EventData? data)
     {
-        var entry = new Dictionary<string, object?>
+        var entry = new EventEntry
         {
-            ["time"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
-            ["level"] = level.ToString().ToLowerInvariant(),
-            ["type"] = type,
-            ["msg"] = message,
+            Time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff"),
+            Level = level.ToString().ToLowerInvariant(),
+            Type = type,
+            Msg = message,
+            ClientId = clientId,
+            RemoteIp = remoteIp,
+            Data = data,
         };
-        if (clientId != null) entry["clientId"] = clientId;
-        if (remoteIp != null) entry["remoteIp"] = remoteIp;
-        if (data != null) entry["data"] = data;
         try
         {
-            // 中文消息不转义，保证 events.jsonl 可直接人工排查
-            var line = JsonSerializer.Serialize(entry, JsonOptions);
+            // 中文消息不转义（ServerJson.Store 内置 Encoder），events.jsonl 可直接人工排查
+            var line = JsonSerializer.Serialize(entry, ServerJson.Events.EventEntry);
             lock (_ioLock)
                 File.AppendAllText(_path, line + Environment.NewLine, Encoding.UTF8);
         }
@@ -194,6 +186,24 @@ public sealed class EventLog : IDisposable
         {
             // 日志失败不能影响隧道本身
         }
+    }
+
+    private static Dictionary<string, object?>? ToDictionary(EventEntry? e)
+    {
+        if (e is null) return null;
+        var d = new Dictionary<string, object?>
+        {
+            ["time"] = e.Time, ["level"] = e.Level, ["type"] = e.Type, ["msg"] = e.Msg,
+        };
+        if (!string.IsNullOrEmpty(e.ClientId)) d["clientId"] = e.ClientId;
+        if (!string.IsNullOrEmpty(e.RemoteIp)) d["remoteIp"] = e.RemoteIp;
+        if (e.Data is { } data)
+            d["data"] = new Dictionary<string, object?>
+            {
+                ["port"] = data.Port, ["connections"] = data.Connections,
+                ["bytesUp"] = data.BytesUp, ["bytesDown"] = data.BytesDown,
+            };
+        return d;
     }
 
     /// <summary>按保留天数清理事件文件：只删"能解析出时间且已超期"的行；解析失败的行一律保留（绝不误删）。</summary>

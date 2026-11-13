@@ -43,7 +43,7 @@ public sealed class TunnelServerHostConfig
                 $"未找到配置文件 {path}（首次部署请将 configs/tunnelserver.json 复制到程序目录；Token 与管理台密码已内置，无需修改）", path);
 
         var json = File.ReadAllText(path);
-        var config = JsonSerializer.Deserialize<TunnelServerHostConfig>(json, JsonOptions)
+        var config = JsonSerializer.Deserialize(json, ServerJson.Config.TunnelServerHostConfig)
             ?? throw new InvalidDataException($"配置文件解析失败：{path}");
         Validate(config, path);
         return config;
@@ -52,22 +52,63 @@ public sealed class TunnelServerHostConfig
     /// <summary>
     /// 首次部署自愈（§10.5 坑①，v1.9）：程序根目录缺配置时，自动从 configs\tunnelserver.json 模板生成
     /// （Token 与管理台密码已内置，AllowedIps 默认 *）。直接运行发布目录、免 install 脚本场景同样生效。
-    /// 返回 false = 模板也不存在，需人工提供配置。
+    /// v1.22：模板文件也缺失时（如一体机模式首次运行），退回内置默认模板，保证必然能生成。
+    /// 返回 false = 无法生成（路径不可写）。
     /// </summary>
     public static bool EnsureConfigFile(string path)
     {
         if (File.Exists(path))
             return true;
 
-        var template = Path.Combine(AppContext.BaseDirectory, "configs", "tunnelserver.json");
-        if (!File.Exists(template))
+        try
+        {
+            var template = Path.Combine(AppContext.BaseDirectory, "configs", "tunnelserver.json");
+            if (File.Exists(template))
+            {
+                File.Copy(template, path, overwrite: false);
+                Console.WriteLine($"[配置] 未找到 {Path.GetFileName(path)}，已自动从 configs\\tunnelserver.json 生成" +
+                    "（Token 与管理台密码已内置；AllowedIps 默认 * 放行所有来源，务必确认 5103 未对公网放行）");
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+                File.WriteAllText(path, DefaultTemplateJson, new UTF8Encoding(false));
+                Console.WriteLine($"[配置] 未找到 {Path.GetFileName(path)} 与 configs 模板，已使用内置默认模板生成" +
+                    "（Token/管理台密码占位符将在启动时自动生成）");
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[配置] 自动生成失败：{ex.Message}");
             return false;
-
-        File.Copy(template, path, overwrite: false);
-        Console.WriteLine($"[配置] 未找到 {Path.GetFileName(path)}，已自动从 configs\\tunnelserver.json 生成" +
-            "（Token 与管理台密码已内置；AllowedIps 默认 * 放行所有来源，务必确认 5103 未对公网放行）");
-        return true;
+        }
     }
+
+    /// <summary>内置默认配置模板（与 configs/tunnelserver.json 等价，占位符运行时替换）。</summary>
+    public const string DefaultTemplateJson = """
+        {
+          "TunnelServer": {
+            "ControlPort": 5003,
+            "BindAddress": "0.0.0.0",
+            "Tokens": [ "__GENERATE_TOKEN__" ],
+            "AllowPorts": [ { "Start": 2001, "End": 4999 } ],
+            "DenyPorts": [ 5103, 22, 3389 ],
+            "AutoRegister": true,
+            "ExtraListenPorts": [],
+            "Admin": {
+              "Enabled": true,
+              "Port": 5103,
+              "Username": "admin",
+              "Password": "__GENERATE_PASSWORD__",
+              "LockoutFailures": 5,
+              "LockoutMinutes": 15,
+              "AllowedIps": [ "*" ]
+            },
+            "Log": { "Dir": "logs", "EventRetentionDays": 90 }
+          }
+        }
+        """;
 
     /// <summary>
     /// 首次启动凭据自愈（开源版）：配置含 __GENERATE_TOKEN__ / __GENERATE_PASSWORD__ 占位符时，
@@ -95,13 +136,6 @@ public sealed class TunnelServerHostConfig
         File.WriteAllText(path, text, Encoding.UTF8);
         Console.WriteLine("[配置] 凭据已写入配置文件，请妥善保管");
     }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        ReadCommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true,
-    };
 
     private static void Validate(TunnelServerHostConfig config, string path)
     {

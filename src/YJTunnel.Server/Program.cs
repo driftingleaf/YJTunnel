@@ -1,9 +1,10 @@
 using System.Net;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using YJTunnel;
 using YJTunnel.Server;
-using YJTunnel.Server;
+using YJTunnel.Server.Api;
 
 // ---------------------------------------------------------------- 配置装载
 
@@ -24,7 +25,7 @@ var config = TunnelServerHostConfig.Load(configPath);
 TunnelServerHostConfig.ReplaceCredentialPlaceholders(configPath);
 
 if (config.TunnelServer.DataDir == ".")
-    config.TunnelServer.DataDir = AppContext.BaseDirectory;
+    config.TunnelServer.DataDir = Path.GetDirectoryName(Path.GetFullPath(configPath))!;
 if (config.TunnelServer.Admin is { Enabled: true } adminOpts &&
     adminOpts.AllowedIps.Any(e => string.Equals(e?.Trim(), "*", StringComparison.Ordinal)))
 {
@@ -56,7 +57,9 @@ if (!config.TunnelServer.Admin.Enabled)
 var adminOptions = config.TunnelServer.Admin;
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseWindowsService(o => o.ServiceName = "YJTunnel");
-builder.WebHost.UseUrls($"http://*:{adminOptions.Port}");
+// 一体机模式（--local-only）：管理台仅绑定回环，避免把管理网页暴露到局域网/公网
+var localOnly = args.Contains("--local-only", StringComparer.OrdinalIgnoreCase);
+builder.WebHost.UseUrls(localOnly ? $"http://127.0.0.1:{adminOptions.Port}" : $"http://*:{adminOptions.Port}");
 
 builder.Services.AddSingleton(tunnelServer);
 builder.Services.AddSingleton(new AdminService(tunnelServer, adminOptions));
@@ -72,6 +75,30 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "yj-tunnel-admin";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        // API 客户端（桌面控制台）未认证时返回 401 JSON，而非 302 跳登录页
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = ctx =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api"))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+                ctx.Response.Redirect(ctx.RedirectUri);
+                return Task.CompletedTask;
+            },
+        };
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -80,6 +107,29 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
+
+// 一体机模式：父进程（管理控制台）退出时自动停机，避免残留孤儿服务端
+var parentPidArg = args.FirstOrDefault(a => a.StartsWith("--parent-pid=", StringComparison.Ordinal));
+if (parentPidArg is not null && int.TryParse(parentPidArg["--parent-pid=".Length..], out var parentPid))
+{
+    _ = Task.Run(async () =>
+    {
+        while (true)
+        {
+            await Task.Delay(2000);
+            try
+            {
+                using var parent = System.Diagnostics.Process.GetProcessById(parentPid);
+                if (parent.HasExited) break;
+            }
+            catch
+            {
+                break; // 父进程不存在
+            }
+        }
+        app.Lifetime.StopApplication();
+    });
+}
 
 // Kestrel 侧全局异常隔离（§5.5：Web 崩溃不影响隧道，sc failure 兜底自动重启）
 app.Use(async (context, next) =>
@@ -129,6 +179,9 @@ app.MapGet("/ports-status", [Authorize(Policy = "TunnelAdmin")] (AdminService ad
     Results.Json(new { ports = admin.GetOverview().Ports })).ExcludeFromDescription();
 
 app.MapRazorPages();
+
+// 桌面管理控制台 JSON API（v1.21）：与 Web 管理台共用 AdminService/认证/IP 白名单
+app.MapAdminApi(config.TunnelServer);
 
 // 停机时释放隧道资源
 app.Lifetime.ApplicationStopping.Register(() =>

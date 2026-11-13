@@ -18,6 +18,7 @@
 - **首次启动自愈**：缺配置自动从模板生成；凭据占位符自动生成强随机值并打印到控制台
 - **跨平台**：.NET 8，Windows 服务 / Linux systemd 双部署形态；管理台内嵌 Kestrel
 - **桌面客户端**：Avalonia 12 + TKCode.Arc，NativeAOT 原生单文件（约 70MB），托盘常驻/可视化映射/开机自启
+- **桌面管理控制台**：服务端原生管理窗口（总览/客户与端口/待审核/日志/踢封）；**远程管理** 或 **本机一体机**（随包启动服务端进程，隧道+Web 同时可用，无需装服务）双模式；与 Web 管理台共用 AdminService；Avalonia 12 + TKCode.Arc，AOT 发布
 
 ## 架构
 
@@ -114,6 +115,8 @@ client.Start();   // 内部单一重连循环，断线自动恢复
 
 浏览器访问 `http://服务器IP:5103`（受来源 IP 白名单约束，默认仅本机回环）。功能：总览仪表盘、客户档案（登录自动记录公司名）、端口分配表（改端口秒级推送生效 + CSV 导出）、新客户端接入审批、操作日志。
 
+**桌面管理控制台**：`scripts/publish-admin-aot.bat` 发布后运行 `YJTunnel.Admin.exe`——可**远程**管理服务器（地址+端口+密码），也可选**本机一体机**模式：控制台随之启动服务端进程（隧道 + Web 管理台同时可用，无需安装服务）。详见 [管理控制台手册](docs/admin-console.md)。
+
 ## Quick Start (English)
 
 1. **Server** (public machine): `bash src/YJTunnel.Server/deploy/publish-win.sh`, copy `dist/tunnel-win`, run `deploy\install-win.bat`. First start auto-generates the config, a random login **Token** and the **admin password** (printed to console). Allow TCP 5003 + 2001-4999 in your cloud security group.
@@ -127,6 +130,7 @@ See `docs/` (Chinese) for protocol spec, deployment details and admin manual.
 - [协议规格](docs/protocol.md)
 - [部署手册](docs/deploy.md)
 - [管理台手册](docs/admin.md)
+- [管理控制台手册](docs/admin-console.md)
 - [客户端手册](docs/client.md)
 
 ## 安全注意事项

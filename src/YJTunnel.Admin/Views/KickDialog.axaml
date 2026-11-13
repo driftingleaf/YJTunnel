@@ -1,0 +1,46 @@
+<arc:Window xmlns="https://github.com/avaloniaui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+            x:Class="YJTunnel.Admin.Views.KickDialog"
+            Title="踢下线" Width="430" SizeToContent="Height"
+            CanResize="False" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+    <StackPanel Margin="22,20" Spacing="10">
+        <TextBlock x:Name="CustomerText" FontSize="15" FontWeight="Bold" />
+        <TextBlock Text="选择处理方式；封禁记录会写入操作日志。" FontSize="11.5" Opacity="0.62" />
+
+        <StackPanel Spacing="8" Margin="0,6,0,4">
+            <RadioButton x:Name="ModeKick" GroupName="banmode" IsChecked="True">
+                <StackPanel>
+                    <TextBlock Text="仅踢下线" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="客户端会立即自动重连，适合刷新会话" FontSize="11" Opacity="0.6" />
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton x:Name="ModeTemp" GroupName="banmode">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="临时封禁" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="封禁期内拒绝接入，到期自动恢复" FontSize="11" Opacity="0.6" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="MinutesInput" Width="70" Height="28" Text="30" Classes="port"
+                                 TextAlignment="Center" FontFamily="Cascadia Code, Consolas, monospace" />
+                        <TextBlock Text="分钟（1-525600）" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+            </RadioButton>
+
+            <RadioButton x:Name="ModePermanent" GroupName="banmode">
+                <StackPanel>
+                    <TextBlock Text="永久封禁" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Text="等同禁用客户，需在客户列表中手动解封" FontSize="11" Opacity="0.6" />
+                </StackPanel>
+            </RadioButton>
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+            <Button Content="取 消" Classes="btn" HorizontalAlignment="Left" Click="OnCancelClick" />
+            <Button x:Name="ExecuteButton" Grid.Column="1" Content="执 行" Classes="btn danger" MinWidth="88"
+                    Click="OnExecuteClick" />
+        </Grid>
+    </StackPanel>
+</arc:Window>

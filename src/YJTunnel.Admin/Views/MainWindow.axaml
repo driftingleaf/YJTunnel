@@ -1,0 +1,671 @@
+<arc:Window xmlns="https://github.com/avaloniaui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:arc="https://github.com/AIDotNet/TKCode.Arc"
+            xmlns:arcc="clr-namespace:TKCode.Arc;assembly=TKCode.Arc.Core"
+            xmlns:vm="using:YJTunnel.Admin.ViewModels"
+            x:Class="YJTunnel.Admin.Views.MainWindow"
+            Icon="/Assets/app.ico"
+            FontFamily="Segoe UI Variable Display, Segoe UI, Microsoft YaHei UI, PingFang SC"
+            Title="YJTunnel 管理控制台" Width="1120" Height="700"
+            CanResize="True" MinWidth="960" MinHeight="600"
+            WindowDecorations="Full">
+
+    <Window.Styles>
+        <!-- 导航 -->
+        <Style Selector="Button.nav">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk2}" />
+        </Style>
+        <Style Selector="Button.nav:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#ECEEF2" />
+        </Style>
+        <Style Selector="Button.nav.active">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.nav.active /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+
+        <!-- 按钮 -->
+        <Style Selector="Button.btn">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtLine}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="9" />
+            <Setter Property="Padding" Value="13,6" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk}" />
+        </Style>
+        <Style Selector="Button.btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="BorderBrush" Value="#C9CED6" />
+        </Style>
+        <Style Selector="Button.btn.primary">
+            <Setter Property="Background" Value="{StaticResource YtInk}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtInk}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.btn.primary:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2C3138" />
+            <Setter Property="BorderBrush" Value="#2C3138" />
+        </Style>
+        <Style Selector="Button.btn.ghost">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk2}" />
+        </Style>
+        <Style Selector="Button.btn.ghost:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk}" />
+        </Style>
+        <Style Selector="Button.btn.danger">
+            <Setter Property="Background" Value="{StaticResource YtPanel}" />
+            <Setter Property="BorderBrush" Value="#F0C9CA" />
+            <Setter Property="Foreground" Value="{StaticResource YtRed}" />
+        </Style>
+        <Style Selector="Button.btn.danger:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtRedSoft}" />
+        </Style>
+        <Style Selector="Button.btn.sm">
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <!-- 端口 chip（可点击改端口） -->
+        <Style Selector="Button.chip">
+            <Setter Property="Background" Value="{StaticResource YtPanel2}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtLine2}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="7,2" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="FontFamily" Value="{StaticResource YtMono}" />
+            <Setter Property="Foreground" Value="{StaticResource YtInk2}" />
+        </Style>
+        <Style Selector="Button.chip:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource YtAccentSoft}" />
+            <Setter Property="BorderBrush" Value="{StaticResource YtAccent}" />
+        </Style>
+
+        <!-- 徽章 -->
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="9,2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.badgeText">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </Window.Styles>
+
+    <Panel>
+        <Grid RowDefinitions="Auto,*,Auto" Background="{StaticResource YtPanel2}">
+
+            <!-- ① 标题栏 -->
+            <Border Grid.Row="0" Background="{StaticResource YtPanel}" BorderThickness="0,0,0,1"
+                    BorderBrush="{StaticResource YtLine2}" Padding="18,9,10,9">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+                    <Border Width="22" Height="22" CornerRadius="7" Background="{StaticResource YtInk}">
+                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Globe}" Size="13" Foreground="White"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" Text="YJTunnel" FontSize="12.5" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="10,0,0,0" />
+                    <Border Grid.Column="2" CornerRadius="999" Background="{StaticResource YtAccentSoft}"
+                            Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="管理控制台" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource YtAccent}" />
+                    </Border>
+                    <TextBlock Grid.Column="3" x:Name="PageTitleText" Text="总览" FontSize="12"
+                               Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                </Grid>
+            </Border>
+
+            <!-- ② 主体：侧栏 + 内容 -->
+            <Grid Grid.Row="1" ColumnDefinitions="216,*">
+
+                <!-- 侧栏 -->
+                <Border Background="{StaticResource YtPanel2}" BorderThickness="0,0,1,0"
+                        BorderBrush="{StaticResource YtLine2}" Padding="10,14,10,12">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*,Auto">
+                        <TextBlock Text="监 控" FontSize="10" FontWeight="SemiBold" LetterSpacing="1.6"
+                                   Foreground="{StaticResource YtInk3}" Margin="10,6,0,6" />
+                        <Button Grid.Row="1" x:Name="NavOverview" Classes="nav active" Click="OnNavOverviewClick">
+                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Gauge}" Size="15" />
+                                <TextBlock Text="总览" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                            <TextBlock Text="管 理" FontSize="10" FontWeight="SemiBold" LetterSpacing="1.6"
+                                       Foreground="{StaticResource YtInk3}" Margin="10,6,0,6" />
+                            <Button x:Name="NavCustomers" Classes="nav" Click="OnNavCustomersClick">
+                                <StackPanel Orientation="Horizontal" Spacing="9">
+                                    <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Server}" Size="15" />
+                                    <TextBlock Text="客户与端口" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="NavPending" Classes="nav" Click="OnNavPendingClick" Margin="0,2,0,0">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Clock3}" Size="15" />
+                                    <TextBlock Grid.Column="1" Text="待审核" Margin="9,0,0,0" />
+                                    <Border Grid.Column="2" x:Name="NavPendingBadge" CornerRadius="999"
+                                            Background="{StaticResource YtOrangeSoft}" Padding="7,1" IsVisible="False">
+                                        <TextBlock x:Name="NavPendingCount" FontSize="10" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource YtOrange}" />
+                                    </Border>
+                                </Grid>
+                            </Button>
+                            <Button x:Name="NavLogs" Classes="nav" Click="OnNavLogsClick" Margin="0,2,0,0">
+                                <StackPanel Orientation="Horizontal" Spacing="9">
+                                    <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.FileText}" Size="15" />
+                                    <TextBlock Text="日志" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- 服务器连接卡 -->
+                        <Border Grid.Row="5" x:Name="ServerCard" BorderThickness="1" CornerRadius="10"
+                                Background="{StaticResource YtPanel}" Padding="9,8" BorderBrush="{StaticResource YtLine}">
+                            <StackPanel Spacing="3">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <Border x:Name="ServerDot" Width="7" Height="7" CornerRadius="4"
+                                            Background="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                    <TextBlock x:Name="ServerAddrText" Text="未连接" FontSize="10.5" FontWeight="SemiBold"
+                                               FontFamily="{StaticResource YtMono}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <TextBlock x:Name="ServerSubText" Text="请先连接服务器" FontSize="10"
+                                           Foreground="{StaticResource YtInk3}" Margin="14,0,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- 内容区 -->
+                <Grid Grid.Column="1" Margin="22,18,22,14">
+
+                    <!-- ══ 总览 ══ -->
+                    <StackPanel x:Name="PageOverview" Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,2">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="总览" FontSize="19" FontWeight="Bold" LetterSpacing="-0.4" />
+                                <TextBlock Text="服务端运行状态" FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock x:Name="OverviewUpdatedText" Text="" FontSize="11.5"
+                                           Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                <Button Content="刷 新" Classes="btn ghost sm" Click="OnRefreshClick" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="12">
+                            <Border Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                    BorderBrush="{StaticResource YtLine}" Padding="14,12">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="36" Height="36" CornerRadius="11" Background="{StaticResource YtGreenSoft}">
+                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Users}" Size="16"
+                                                      Foreground="{StaticResource YtGreen}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <TextBlock Text="在线客户" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="3">
+                                            <TextBlock x:Name="MetricOnline" Text="0" FontSize="21" FontWeight="Bold" />
+                                            <TextBlock Text="台" FontSize="11" Foreground="{StaticResource YtInk3}"
+                                                       VerticalAlignment="Bottom" Margin="0,0,0,3" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="1" Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                    BorderBrush="{StaticResource YtLine}" Padding="14,12">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="36" Height="36" CornerRadius="11" Background="{StaticResource YtAccentSoft}">
+                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.LockOpen}" Size="16"
+                                                      Foreground="{StaticResource YtAccent}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <TextBlock Text="占用端口" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock x:Name="MetricPorts" Text="0" FontSize="21" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="2" Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                    BorderBrush="{StaticResource YtLine}" Padding="14,12">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="36" Height="36" CornerRadius="11" Background="{StaticResource YtOrangeSoft}">
+                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Clock3}" Size="16"
+                                                      Foreground="{StaticResource YtOrange}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <TextBlock Text="待审核" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock x:Name="MetricPending" Text="0" FontSize="21" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="3" Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                    BorderBrush="{StaticResource YtLine}" Padding="14,12">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <Border Width="36" Height="36" CornerRadius="11" Background="{StaticResource YtPanel2}">
+                                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.List}" Size="16"
+                                                      Foreground="{StaticResource YtInk2}"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                                        <TextBlock Text="客户总数" FontSize="11" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock x:Name="MetricCustomers" Text="0" FontSize="21" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- 本机一体机信息（仅本机模式显示） -->
+                        <Border x:Name="LocalInfoCard" IsVisible="False" Background="{StaticResource YtAccentSoft}"
+                                CornerRadius="11" Padding="12,9">
+                            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Server}" Size="14"
+                                              Foreground="{StaticResource YtAccent}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" x:Name="LocalInfoText" FontSize="11.5"
+                                           FontFamily="{StaticResource YtMono}" Foreground="{StaticResource YtInk}"
+                                           Margin="8,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                <Button Grid.Column="2" Content="打开 Web" Classes="btn sm" Margin="0,0,6,0"
+                                        Click="OnOpenWebClick" />
+                                <Button Grid.Column="3" Content="复制 Token" Classes="btn sm" Click="OnCopyTokenClick" />
+                            </Grid>
+                        </Border>
+
+                        <!-- 在线会话 -->
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource YtAccentSoft}">
+                                    <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Activity}" Size="13"
+                                                  Foreground="{StaticResource YtAccent}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="在线会话" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" />
+                                <TextBlock x:Name="SessionsHint" Text="" FontSize="11.5"
+                                           Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Border Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                    BorderBrush="{StaticResource YtLine}">
+                                <StackPanel>
+                                    <Border Background="{StaticResource YtPanel2}" Padding="14,9">
+                                        <Grid ColumnDefinitions="2*,1.1*,1.2*,0.8*,0.7*,0.7*">
+                                        <TextBlock Text="客 户" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock Grid.Column="1" Text="机器名" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock Grid.Column="2" Text="来源 IP" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock Grid.Column="3" Text="版本" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" />
+                                        <TextBlock Grid.Column="4" Text="连接数" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" HorizontalAlignment="Right" />
+                                        <TextBlock Grid.Column="5" Text="在线时长" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    </Border>
+                                    <ItemsControl x:Name="SessionsList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:SessionRow">
+                                                <Border Padding="14,10">
+                                                <Grid ColumnDefinitions="2*,1.1*,1.2*,0.8*,0.7*,0.7*">
+                                                    <Grid ColumnDefinitions="Auto,*">
+                                                        <Border Width="28" Height="28" CornerRadius="8" Background="{Binding AvatarBg}">
+                                                            <TextBlock Text="{Binding Initial}" FontSize="11.5" FontWeight="Bold"
+                                                                       Foreground="{Binding AvatarFg}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding ClientId}" FontSize="10.5"
+                                                                       Foreground="{StaticResource YtInk3}"
+                                                                       FontFamily="{StaticResource YtMono}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Machine}" FontSize="11.5"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               Foreground="{StaticResource YtInk2}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Ip}" FontSize="11.5"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               Foreground="{StaticResource YtInk2}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding Version}" FontSize="11"
+                                                               Foreground="{StaticResource YtInk2}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding Connections}" FontSize="12"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Uptime}" FontSize="11.5"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                                </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock x:Name="SessionsEmpty" Text="暂无在线客户端"
+                                               FontSize="12" Foreground="{StaticResource YtInk3}"
+                                               HorizontalAlignment="Center" Margin="0,18" IsVisible="False" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 绑定失败 -->
+                        <StackPanel x:Name="BindFailureSection" Spacing="8" IsVisible="False">
+                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource YtOrangeSoft}">
+                                    <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.TriangleAlert}" Size="13"
+                                                  Foreground="{StaticResource YtOrange}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="绑定失败" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <ItemsControl x:Name="BindFailureList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource YtOrangeSoft}" CornerRadius="10"
+                                                BorderThickness="1" BorderBrush="#F0D9B5" Padding="12,9" Margin="0,0,0,6">
+                                            <StackPanel Orientation="Horizontal" Spacing="9">
+                                                <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.TriangleAlert}" Size="15"
+                                                              Foreground="{StaticResource YtOrange}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding}" FontSize="12.5" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ══ 客户与端口 ══ -->
+                    <Grid x:Name="PageCustomers" RowDefinitions="Auto,Auto,*" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,12">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="客户与端口" FontSize="19" FontWeight="Bold" LetterSpacing="-0.4" />
+                                <TextBlock Text="端口分配服务端权威" FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <TextBlock x:Name="CustomersHint" Text="" FontSize="11.5"
+                                           Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                <Button Content="刷 新" Classes="btn ghost sm" Click="OnRefreshClick" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                            <arc:Input x:Name="CustomerSearch" Placeholder="搜索公司名 / ClientId / 端口…"
+                                       IsLabelVisible="False" MinHeight="32" TextChanged="OnCustomerSearchChanged" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <Grid ColumnDefinitions="Auto,1.1*,1.7*,Auto,Auto" ColumnSpacing="14"
+                                      Margin="14,0,14,6" Opacity="0.55">
+                                    <TextBlock Text="客 户" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource YtInk3}" />
+                                    <TextBlock Grid.Column="1" Text="端口映射（点击可改端口）" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource YtInk3}" />
+                                    <TextBlock Grid.Column="2" Text="状 态" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource YtInk3}" />
+                                    <TextBlock Grid.Column="3" Grid.ColumnSpan="2" Text="操 作" FontSize="10" FontWeight="SemiBold"
+                                               Foreground="{StaticResource YtInk3}" HorizontalAlignment="Right" />
+                                </Grid>
+                                <ItemsControl x:Name="CustomersList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:CustomerRow">
+                                            <Border Background="{StaticResource YtPanel}" CornerRadius="13"
+                                                    BorderThickness="1" BorderBrush="{StaticResource YtLine}"
+                                                    Padding="14,12" Margin="0,0,0,8">
+                                                <Grid ColumnDefinitions="Auto,1.1*,1.7*,Auto,Auto" ColumnSpacing="14">
+                                                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                                        <Border Width="30" Height="30" CornerRadius="9" Background="{Binding AvatarBg}">
+                                                            <TextBlock Text="{Binding Initial}" FontSize="12" FontWeight="Bold"
+                                                                       Foreground="{Binding AvatarFg}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Subtitle}" FontSize="10.5"
+                                                                       Foreground="{StaticResource YtInk3}"
+                                                                       FontFamily="{StaticResource YtMono}"
+                                                                       TextTrimming="CharacterEllipsis" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <ItemsControl Grid.Column="1" ItemsSource="{Binding Ports}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel Orientation="Horizontal" ItemSpacing="4" LineSpacing="4" />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:PortRow">
+                                                                <Button Classes="chip" Tag="{Binding}" ToolTip.Tip="{Binding ToolTip}"
+                                                                        Click="OnPortChipClick">
+                                                                    <TextBlock Text="{Binding ChipText}" Foreground="{Binding ChipFg}" />
+                                                                </Button>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                    <Border Grid.Column="2" Classes="badge" Background="{Binding BadgeBg}"
+                                                            VerticalAlignment="Center" HorizontalAlignment="Left">
+                                                        <TextBlock Text="{Binding BadgeText}" Classes="badgeText"
+                                                                   Foreground="{Binding BadgeFg}" />
+                                                    </Border>
+                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6"
+                                                                VerticalAlignment="Center">
+                                                        <Button Content="踢下线" Classes="btn danger sm"
+                                                                IsVisible="{Binding CanKick}" Tag="{Binding}"
+                                                                Click="OnKickClick" />
+                                                        <Button Content="解 封" Classes="btn sm"
+                                                                IsVisible="{Binding CanUnban}" Tag="{Binding}"
+                                                                Click="OnUnbanClick" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="CustomersEmpty" Text="暂无客户"
+                                           FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           HorizontalAlignment="Center" Margin="0,26" IsVisible="False" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ══ 待审核 ══ -->
+                    <Grid x:Name="PagePending" RowDefinitions="Auto,*" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,12">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="待审核" FontSize="19" FontWeight="Bold" LetterSpacing="-0.4" />
+                                <TextBlock Text="新客户端接入申请" FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Border x:Name="PendingCountBadge" Classes="badge" Background="{StaticResource YtOrangeSoft}"
+                                        IsVisible="False">
+                                    <TextBlock x:Name="PendingCountText" Classes="badgeText"
+                                               Foreground="{StaticResource YtOrange}" />
+                                </Border>
+                                <Button Content="刷 新" Classes="btn ghost sm" Click="OnRefreshClick" />
+                            </StackPanel>
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <ItemsControl x:Name="PendingList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PendingRow">
+                                            <Border Background="{StaticResource YtPanel}" CornerRadius="13"
+                                                    BorderThickness="1" BorderBrush="{StaticResource YtLine}"
+                                                    Padding="14,12" Margin="0,0,0,8">
+                                                <Grid ColumnDefinitions="Auto,1.4*,1*,0.9*,Auto" ColumnSpacing="14">
+                                                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                                        <Border Width="30" Height="30" CornerRadius="9" Background="{Binding AvatarBg}">
+                                                            <TextBlock Text="{Binding Initial}" FontSize="12" FontWeight="Bold"
+                                                                       Foreground="{Binding AvatarFg}"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding ClientId}" FontSize="10.5"
+                                                                       Foreground="{StaticResource YtInk3}"
+                                                                       FontFamily="{StaticResource YtMono}" />
+                                                        </StackPanel>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Machine}" FontSize="12"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               Foreground="{StaticResource YtInk2}" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Time}" FontSize="11.5"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               Foreground="{StaticResource YtInk2}" VerticalAlignment="Center" />
+                                                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6"
+                                                                VerticalAlignment="Center">
+                                                        <Button Content="通 过" Classes="btn primary sm" Tag="{Binding}"
+                                                                Click="OnApproveClick" />
+                                                        <Button Content="拒 绝" Classes="btn sm" Tag="{Binding}"
+                                                                Click="OnRejectClick" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="PendingEmpty" Text="没有待审核的接入申请"
+                                           FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           HorizontalAlignment="Center" Margin="0,26" IsVisible="False" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+
+                    <!-- ══ 日志 ══ -->
+                    <Grid x:Name="PageLogs" RowDefinitions="Auto,*" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,12">
+                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <TextBlock Text="日志" FontSize="19" FontWeight="Bold" LetterSpacing="-0.4" />
+                                <TextBlock x:Name="LogsHint" Text="最近 200 条操作与事件" FontSize="12"
+                                           Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Content="刷 新" Classes="btn ghost sm" Click="OnRefreshClick" />
+                        </Grid>
+                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <Border Background="{StaticResource YtPanel}" CornerRadius="13" BorderThickness="1"
+                                        BorderBrush="{StaticResource YtLine}">
+                                    <ItemsControl x:Name="EventsList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:EventRow">
+                                                <Border Padding="14,9">
+                                                <Grid ColumnDefinitions="86,80,*" ColumnSpacing="10">
+                                                    <TextBlock Text="{Binding Time}" FontSize="11"
+                                                               FontFamily="{StaticResource YtMono}"
+                                                               Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                                                    <Border Grid.Column="1" Classes="badge" Background="{Binding BadgeBg}"
+                                                            HorizontalAlignment="Left">
+                                                        <TextBlock Text="{Binding TypeLabel}" Classes="badgeText"
+                                                                   Foreground="{Binding BadgeFg}" />
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2" Text="{Binding Message}" FontSize="12"
+                                                               Foreground="{StaticResource YtInk2}"
+                                                               TextWrapping="Wrap" VerticalAlignment="Center" />
+                                                </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                                <TextBlock x:Name="EventsEmpty" Text="暂无日志"
+                                           FontSize="12" Foreground="{StaticResource YtInk3}"
+                                           HorizontalAlignment="Center" Margin="0,26" IsVisible="False" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </Grid>
+
+            <!-- ③ 状态栏 -->
+            <Border Grid.Row="2" Background="{StaticResource YtPanel2}" BorderThickness="0,1,0,0"
+                    BorderBrush="{StaticResource YtLine2}" Padding="18,8">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+                    <Border x:Name="StatusDot" Width="7" Height="7" CornerRadius="4"
+                            Background="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" x:Name="StatusText" Text="未连接" FontSize="11.5"
+                               Foreground="{StaticResource YtInk2}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" x:Name="LatencyText" Text="" FontSize="11"
+                               Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                    <Button Grid.Column="4" Content="切换连接" Classes="btn ghost sm"
+                            VerticalAlignment="Center" Margin="0,0,10,0"
+                            Click="OnSwitchConnectionClick" />
+                    <TextBlock Grid.Column="5" Text="v1.0.0" FontSize="11"
+                               Foreground="{StaticResource YtInk3}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ④ 登录遮罩 -->
+        <Border x:Name="LoginOverlay" Background="#E60F1115">
+            <Border Width="390" CornerRadius="16" Background="{StaticResource YtPanel}"
+                    BorderThickness="1" BorderBrush="{StaticResource YtLine}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,22">
+                <StackPanel Spacing="4">
+                    <Border Width="44" Height="44" CornerRadius="13" Background="{StaticResource YtInk}"
+                            HorizontalAlignment="Left" Margin="0,0,0,12">
+                        <arc:ArcGlyph Data="{x:Static arcc:ArcIcons.Globe}" Size="22" Foreground="White"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="连接 / 启动服务器" FontSize="17" FontWeight="Bold" LetterSpacing="-0.3" />
+                    <TextBlock Text="远程管理已运行的服务器，或本机直接启动隧道引擎" FontSize="12"
+                               Foreground="{StaticResource YtInk3}" Margin="0,2,0,12" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,0,0,14">
+                        <Button x:Name="ModeRemoteButton" Content="远程管理" Classes="btn primary" Click="OnModeRemoteClick" />
+                        <Button x:Name="ModeLocalButton" Content="本机一体机" Classes="btn" Click="OnModeLocalClick" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="RemoteLoginPanel" Spacing="4">
+                        <Grid ColumnDefinitions="*,100" ColumnSpacing="10" Margin="0,0,0,10">
+                            <arc:Input x:Name="LoginHost" Label="服务器地址" IsLabelVisible="True"
+                                       Placeholder="如 tunnel.example.com" />
+                            <arc:Input Grid.Column="1" x:Name="LoginPort" Label="端口" IsLabelVisible="True"
+                                       Placeholder="5103" FontFamily="{StaticResource YtMono}" />
+                        </Grid>
+                        <arc:Input x:Name="LoginPassword" Label="管理密码" IsLabelVisible="True"
+                                   Placeholder="服务端配置的管理台密码" PasswordChar="●" Margin="0,0,0,4" />
+                        <Button x:Name="LoginButton" Content="连 接" Classes="btn primary" IsDefault="True"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Padding="0,10" Click="OnLoginClick" />
+                        <TextBlock Text="需在服务端 AllowedIps 白名单内；密码与 Web 管理台一致" FontSize="10.5"
+                                   Foreground="{StaticResource YtInk3}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="LocalLoginPanel" Spacing="4" IsVisible="False">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <arc:Input x:Name="LocalConfigInput" Label="配置文件（tunnelserver.json）" IsLabelVisible="True"
+                                       Placeholder="选择或输入 tunnelserver.json 路径" />
+                            <Button Grid.Column="1" Content="浏览…" Classes="btn"
+                                    VerticalAlignment="Bottom" Margin="0,0,0,2" Click="OnBrowseLocalConfigClick" />
+                        </Grid>
+                        <TextBlock Text="缺文件时自动生成（含随机 Token/管理密码）；数据目录随配置文件所在目录。"
+                                   FontSize="10.5" Foreground="{StaticResource YtInk3}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                        <Button x:Name="LocalStartButton" Content="启动一体机（含 Web 管理台）" Classes="btn primary"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                                Padding="0,10" Margin="0,8,0,0" Click="OnLocalStartClick" />
+                        <TextBlock Text="启动后隧道（控制端口）与 Web 管理台（Admin.Port）同时可用；与 Windows 服务互斥，服务在运行时请先 sc stop YJTunnel。"
+                                   FontSize="10.5" Foreground="{StaticResource YtInk3}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="LoginError" Text="" FontSize="11.5"
+                               Foreground="{StaticResource YtRed}" Margin="2,8,0,4" IsVisible="False" TextWrapping="Wrap" />
+                    <Button x:Name="OverlayCancelButton" Content="返 回（保持当前连接）" Classes="btn ghost"
+                            IsVisible="False" HorizontalAlignment="Center" Margin="0,2,0,0"
+                            Click="OnOverlayCancelClick" />
+                </StackPanel>
+            </Border>
+        </Border>
+    </Panel>
+</arc:Window>
